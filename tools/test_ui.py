@@ -95,6 +95,21 @@ def main() -> int:
         check(ready["skel"] is True, "首屏骨架已消失", str(ready))
         check(ready["cw"] > 400 and ready["ch"] > 200, "场景画布已铺开", str(ready))
 
+        # ---------- 1.5 拖动平移镜头（手机视野窄，靠它看全屋子）
+        cam0 = js("Math.round(window.__scene.cam.x)")
+        cdp.call("Input.dispatchMouseEvent", {"type": "mousePressed", "x": 600, "y": 400,
+                                              "button": "left", "clickCount": 1})
+        for x in (570, 540, 510, 480):
+            cdp.call("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": 400,
+                                                  "button": "left"})
+            time.sleep(0.03)
+        cdp.call("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": 480, "y": 400,
+                                              "button": "left", "clickCount": 1})
+        time.sleep(0.5)
+        cam1 = js("Math.round(window.__scene.cam.x)")
+        check(cam1 > cam0, "按住拖动可以平移镜头", "%s → %s" % (cam0, cam1))
+        check(js("window.__scene.path === null") is True, "拖动不会被当成点击走路")
+
         # ---------- 2. 选案切换
         goto(BASE + "/?case=case_02_pet")
         title = js("document.getElementById('caseTitle').textContent")
@@ -127,7 +142,7 @@ def main() -> int:
         rep = js("(() => {const m=document.getElementById('reportModal');"
                  "const t=document.getElementById('reportBody').textContent;"
                  "return {open: !m.hidden, len: t.length,"
-                 " head: t.slice(0,60), verdict: (document.querySelector('.v-verdict')||{}).textContent};})()")
+                 " head: t.slice(0,60), verdict: (document.querySelector('.verdict-main i')||{}).textContent};})()")
         check(rep["open"] is True, "选完提交，复盘弹层打开", str(rep)[:120])
         check(rep["len"] > 200, "复盘里有实质内容", "len=%s" % rep["len"])
         check(bool(rep["verdict"]), "复盘给出评级（合格 / 待补 / 不合格）", str(rep["verdict"]))

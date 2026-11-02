@@ -92,7 +92,16 @@
       renderThread();          // 进场就给一句"怎么开口"，别留一块空白
       loadLaws(state.caseData.id);
     }).catch(function (e) {
-      $("caseTitle").textContent = "载入失败：" + e.message;
+      $("caseTitle").textContent = "载入失败";
+      $("caseBrief").textContent = "服务可能没起来，或者正在重启。";
+      $("hint").textContent = "打不开页面时：确认命令行里跑着 python src/server.py --port 8770";
+      var sk = $("skeleton");
+      if (sk) {
+        sk.classList.remove("gone");
+        sk.innerHTML = "<span>连不上服务<br>先运行 start.bat（或 python src/server.py --port 8770）</span>";
+        sk.style.textAlign = "center";
+      }
+      toast("载入失败：" + (e.message || "网络不通"), "bad");
     });
   }
 
@@ -104,6 +113,14 @@
         esc(c.title) + " · " + esc(c.difficulty) + "</option>";
     }).join("");
     sel.addEventListener("change", function () {
+      var dirty = Object.keys(state.plan || {}).length > 0 ||
+        (state.threads && Object.keys(state.threads).some(function (k) {
+          return (state.threads[k] || []).length > 0;
+        }));
+      if (dirty && !window.confirm("换案子会清空当前的谈话与方案，继续吗？")) {
+        sel.value = state.caseData.id;
+        return;
+      }
       location.search = "?case=" + encodeURIComponent(sel.value);
     });
   }
@@ -447,49 +464,88 @@
   function showReport(res) {
     var rep = res.report || {};
     var body = $("reportBody");
-    var rows = (rep.dims || []).map(function (d) {
-      return "<tr><td>" + esc(d.name) + "</td><td>" + esc(d.chosen) +
-        "</td><td class='num'>" + d.quality.toFixed(2) + "</td><td>" +
-        (d.gap > 0.2 && d.best ? "更好的做法：" + esc(d.best)
-          : (d.lackFactsText ? "缺证据：" + esc(d.lackFactsText) : "—")) + "</td></tr>";
+    var sc = rep.scores || {};
+
+    // 四维：一行一维 + 分数条。表格在手机上会挤成一坨，改用卡片式排。
+    var dims = (rep.dims || []).map(function (d) {
+      var pct = Math.round(Math.max(0, Math.min(1, d.quality)) * 100);
+      var alt = "";
+      if (d.gap > 0.2 && d.best) {
+        alt = "<p class='dim-alt'>更好的做法：" + esc(d.best) + "</p>";
+      } else if (d.lackFactsText) {
+        alt = "<p class='dim-alt warn'>缺证据：" + esc(d.lackFactsText) + "（去现场把它们看到）</p>";
+      }
+      return "<div class='dim-row" + (d.trap ? " trap" : "") + "'>" +
+        "<div class='dim-top'><b>" + esc(d.name) + "</b>" +
+        "<span class='dim-score'>" + d.quality.toFixed(2) + "</span></div>" +
+        "<div class='dim-bar'><i style='width:" + pct + "%'></i></div>" +
+        "<p class='dim-pick'>你选了：" + esc(d.chosen) + "</p>" +
+        alt + "</div>";
     }).join("");
+
     var top3 = (rep.top3 || []).map(function (t, i) {
-      return "<li><b>" + (i + 1) + "· " + esc(t.dim) + "</b><p>你： " + esc(t.what) +
-        "</p><p class='alt'>换成： " + esc(t.instead) + "</p>" +
+      return "<li><b>" + (i + 1) + " · " + esc(t.dim) + "</b>" +
+        "<p>你： " + esc(t.what) + "</p>" +
+        "<p class='alt'>换成： " + esc(t.instead) + "</p>" +
         (t.why ? "<p class='why'>" + esc(t.why) + "</p>" : "") + "</li>";
-    }).join("") || "<li class='ok'>没有明显失误。</li>";
+    }).join("") || "<li class='ok'>没有明显失误，四维都选到了该选的。</li>";
+
     var untouched = (rep.untouched || []).map(function (n) {
       return "<li>" + esc(n.text) + "</li>";
     }).join("") || "<li class='ok'>每条诉求都碰到了。</li>";
-    var p = rep.process || {};
 
-    $("repTitle").textContent = "训练复盘 · " + (rep.caseTitle || "");
+    var pr = rep.process || {};
+    var good = rep.verdict === "合格";
+
+    $("repTitle").textContent = "训练复盘";
     body.innerHTML =
-      "<div class='verdict " + (rep.verdict === "合格" ? "good" : "bad") + "'>" +
-        "<div class='v-label'>" + esc(rep.ending ? rep.ending.label : "") + "</div>" +
-        "<div class='v-verdict'>" + esc(rep.verdict || "") + "</div>" +
-        "<p>" + esc(rep.why || "") + "</p></div>" +
+      "<div class='rep-head'>" +
+        "<span class='rep-case'>" + esc(rep.caseTitle || "") +
+          (rep.subtitle ? " · " + esc(rep.subtitle) : "") + "</span>" +
+        "<span class='rep-time'>" + esc(rep.generatedAt || "") + "</span>" +
+      "</div>" +
+      "<div class='verdict " + (good ? "good" : "bad") + "'>" +
+        "<div class='verdict-main'><b>" + esc((rep.ending || {}).label || "") + "</b>" +
+          "<i>" + esc(rep.verdict || "") + "</i></div>" +
+        "<p>" + esc(rep.why || "") + "</p>" +
+      "</div>" +
       "<div class='nums'>" +
-        num("覆盖率", rep.scores.coverage) + num("天花板", rep.scores.ceiling) +
-        num("总分", rep.scores.total) + num("置信度", rep.scores.confidence) + "</div>" +
-      "<h4>四维</h4><table class='rep'><thead><tr><th>维度</th><th>你的选择</th><th>得分</th><th>对照</th></tr></thead><tbody>" +
-      rows + "</tbody></table>" +
+        num("覆盖率", sc.coverage, 0.60) +
+        num("天花板", sc.ceiling, null) +
+        num("总分", sc.total, 0.60) +
+        num("置信度", sc.confidence, 0.62) +
+      "</div>" +
+      "<p class='nums-note'>三个分数线：及格 0.60 · 可以下结论 0.62 · 结构性冲突门槛 0.40。都是经验值，待跑数校准。</p>" +
+      "<h4>四维</h4><div class='dims'>" + dims + "</div>" +
       "<h4>关键失误</h4><ol class='top3'>" + top3 + "</ol>" +
       "<h4>全程没碰到的诉求</h4><ul class='plain'>" + untouched + "</ul>" +
-      "<h4>过程</h4><p class='proc'>分别谈话：" + (p.separateTalk ? "有" : "没有") +
-        "（" + (p.separateCount || 0) + " 次）｜ 越界承诺：" + (p.oversteps || 0) + " 次 ｜ " +
-        "看过 " + (p.spotsSeen || 0) + " 处、记下 " + (p.factsSeen || 0) + " 条事实</p>" +
-      "<p class='audit'>报告里的每个数字都能在审计日志里找到来源（本份 " +
-        (rep.auditLines || 0) + " 条判定记录）。</p>" +
+      "<h4>过程</h4>" +
+      "<div class='proc-grid'>" +
+        procCell("分别谈话", pr.separateTalk ? "有 · " + pr.separateCount + " 次" : "没有", !pr.separateTalk) +
+        procCell("越界承诺", (pr.oversteps || 0) + " 次", (pr.oversteps || 0) >= 2) +
+        procCell("看过点位", (pr.spotsSeen || 0) + " 处", false) +
+        procCell("记下事实", (pr.factsSeen || 0) + " 条", false) +
+      "</div>" +
+      "<p class='audit'>本份报告有 " + (rep.auditLines || 0) +
+        " 条判定记录支撑，每个数字都能在审计日志里找到出处。</p>" +
       "<p class='foot-note'>" + esc(rep.footer || "") + "</p>";
 
-    openReport();
     api("/api/report/" + state.sessionId).then(function (d) {
       state.reportText = d.text || "";
     }).catch(function () { state.reportText = ""; });
+
+    openReport();
   }
 
+  function procCell(label, value, warn) {
+    return "<div class='proc-cell" + (warn ? " warn" : "") + "'>" +
+      "<span>" + esc(label) + "</span><b>" + esc(value) + "</b></div>";
+  }
+
+  var lastFocus = null;
+
   function openReport() {
+    lastFocus = document.activeElement;
     $("reportModal").hidden = false;
     $("btnReopen").hidden = true;
     // 弹层打开时锁住背景滚动：否则手机上滑一下，底下的方案区跟着动
@@ -501,11 +557,35 @@
     $("reportModal").hidden = true;
     document.body.classList.remove("modal-open");
     $("btnReopen").hidden = !state.hasReport;
+    // 焦点回到打开它的地方，键盘用户不会"掉"到页面顶部
+    if (lastFocus && lastFocus.focus) { lastFocus.focus({ preventScroll: true }); }
   }
 
-  function num(label, v) {
+  // Tab 只在弹层内循环：不然按着按着就跑到背后的方案区去了
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Tab" || $("reportModal").hidden) { return; }
+    var box = document.querySelector(".modal-box");
+    var items = box.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+    if (!items.length) { return; }
+    var first = items[0], last = items[items.length - 1];
+    if (ev.shiftKey && document.activeElement === first) {
+      ev.preventDefault(); last.focus();
+    } else if (!ev.shiftKey && document.activeElement === last) {
+      ev.preventDefault(); first.focus();
+    }
+  });
+
+  function num(label, v, pass) {
     var n = typeof v === "number" ? v : 0;
-    return "<div class='num-box'><span>" + label + "</span><b>" + n.toFixed(2) + "</b></div>";
+    var pct = Math.round(Math.max(0, Math.min(1, n)) * 100);
+    var cls = pass === null || pass === undefined ? "" : (n >= pass ? " hit" : " low");
+    var line = (pass === null || pass === undefined)
+      ? "" : "<i class='mark' style='left:" + Math.round(pass * 100) + "%'></i>";
+    return "<div class='num-box" + cls + "'>" +
+      "<span>" + label + "</span>" +
+      "<b>" + n.toFixed(2) + "</b>" +
+      "<div class='num-bar'>" + line + "<i style='width:" + pct + "%'></i></div>" +
+      "</div>";
   }
 
   $("btnAgree").addEventListener("click", function () { submit("agreement"); });

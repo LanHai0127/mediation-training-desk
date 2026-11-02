@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import time
 from typing import Any
 
 FOOTER = "教学演练生成 · 不构成执法意见"
@@ -76,7 +77,10 @@ def build_report(session: Any, result: dict[str, Any]) -> dict[str, Any]:
     process = result.get("process") or {}
 
     return {
+        "caseId": case.get("id", ""),
+        "generatedAt": time.strftime("%Y-%m-%d %H:%M"),
         "caseTitle": case.get("title", ""),
+        "subtitle": (case.get("meta") or {}).get("subtitle", ""),
         "ending": ending,
         "verdict": result.get("verdict", ""),
         "why": result.get("why", ""),

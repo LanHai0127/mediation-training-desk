@@ -8,7 +8,7 @@
 | # | 红线 | 具体做法 | 在哪兑现 | 状态 |
 |---|---|---|---|---|
 | 1 | 数据全部虚构 | 案卷、姓名、身份证号、地址、电话、笔录一律编造；不使用任何真实案件、真实当事人信息 | `src/cases/*` 全部为手写虚构数据；数据库不接任何外部数据源；提交前跑 `tools/audit_privacy.py` 扫真实姓名/手机号/身份证格式 | 待落位（S4） |
-| 2 | 固定角标 | 全站右下角常驻角标「教学演练 · 虚构案例 · 非真实警情」 | `src/web/index.html` 的 `.compliance-badge` + `app.css` `position:fixed; right:12px; bottom:12px; z-index:9999`；打印样式单独保留。`test_smoke` 有断言守着 | 已落位（S2） |
+| 2 | 固定角标 | 首页角标固定在**画布内**右上角（跟着场景走，不压正文）；登录页用 fixed 版；打印复盘时在报告顶部再出一枚 | `src/web/index.html` 的 `.stage-badge` + `.print-badge`；`app.css` `.stage-badge{position:absolute;top:10px;right:10px}`、`@media print .print-badge{display:block}`。`test_smoke` 断言首页 HTML 含角标文案 | 已落位（S8） |
 | 3 | 登录页声明 | 登录页要有虚构声明，不只是角标 | `src/web/login.html` 底部 `.notice` 声明块（角标 + 声明两处都在） | 已落位（S2）；确认弹层待 S7 |
 | 4 | 协议书页脚 | 每一份生成的"协议书"页脚注「训练模拟文本，不作为法律文书」 | 协议书模板 `src/web/agreement.html` 页脚；导出 PDF 时同样保留（CSS `@page` 页脚） | 待落位（S5） |
 | 5 | 产品定位 | 训练与演练，不替代真实执法决策 | 全站文案不出现"建议拘留/建议罚款 x 元/依法应…"等结论式表述；首页与关于页写明定位 | 待落位（S1/S6） |

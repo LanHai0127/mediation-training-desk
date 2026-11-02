@@ -546,6 +546,13 @@
 
   // 纵向不做滚动：地平线固定在画布 10% 处、世界最前排固定在 98% 处，
   // 这样一眼能看全整间屋子；横向跟人平移。少一个自由度，移动端才不会"跑出画面"。
+  Scene.prototype._clampCam = function (x) {
+    var halfNear = (this.w / 2) / depthScale(WORLD.h);
+    var halfFar = (this.w / 2) / depthScale(BACKDROP_Y);
+    var lo = Math.min(halfNear, halfFar) + 20;
+    return Math.max(lo, Math.min(WORLD.w - lo, x));
+  };
+
   Scene.prototype.artScale = function () {
     return ART * Math.min(1, Math.max(0.6, this.w / 900));
   };
@@ -573,25 +580,48 @@
   Scene.prototype._bindInput = function () {
     var self = this;
     var down = null;
+    var drag = null;
 
     this.canvas.addEventListener("pointerdown", function (ev) {
       if (ev.button !== undefined && ev.button !== 0) { return; }
       down = { x: ev.clientX, y: ev.clientY, t: Date.now() };
+      drag = { x: ev.clientX, cam: self.cam.x, moved: false };
       self.canvas.setPointerCapture && self.canvas.setPointerCapture(ev.pointerId);
     });
 
     this.canvas.addEventListener("pointerup", function (ev) {
+      var wasDrag = !!(drag && drag.moved);
+      drag = null;
       if (!down) { return; }
       var moved = Math.abs(ev.clientX - down.x) + Math.abs(ev.clientY - down.y);
       var dt = Date.now() - down.t;
       down = null;
-      if (moved > 12 || dt > 900) { return; }   // 拖动/长按不算点击
+      if (wasDrag || moved > 12 || dt > 900) { return; }   // 拖动/长按不算点击
       var r = self.canvas.getBoundingClientRect();
       self.tap(ev.clientX - r.left, ev.clientY - r.top);
     });
 
     var lastMove = 0;
+    this.canvas.addEventListener("pointerdown", function (ev) {
+      self.canvas.style.cursor = "grabbing";
+    });
+    this.canvas.addEventListener("pointerup", function () {
+      self.canvas.style.cursor = "default";
+    });
+
     this.canvas.addEventListener("pointermove", function (ev) {
+      // 按住拖动 = 平移镜头。手机画布窄，不拖根本看不全一间屋子。
+      if (drag) {
+        var dx = ev.clientX - drag.x;
+        if (Math.abs(dx) > 6) {
+          drag.moved = true;
+          self._freeCam = true;
+          var k = depthScale((BACKDROP_Y + WORLD.h) / 2);
+          self.cam.x = self._clampCam(drag.cam - dx / k);
+          self.canvas.style.cursor = "grabbing";
+        }
+        return;
+      }
       var now = Date.now();
       if (now - lastMove < 60) { return; }     // 拾取要遍历+排序，60ms 一次足够
       lastMove = now;
@@ -682,14 +712,11 @@
       this.walkPhase = 0;
     }
 
-    // 镜头只跟横向，留死区避免站着不动时画面抖
-    if (Math.abs(p.x - this.cam.x) > 40) {
+    if (this.path) { this._freeCam = false; }   // 一走动就恢复跟随
+    if (!this._freeCam && Math.abs(p.x - this.cam.x) > 40) {
       this.cam.x += (p.x - this.cam.x) * Math.min(1, dt * 4);
     }
-    var halfNear = (this.w / 2) / depthScale(WORLD.h);   // 最近处能看到的半宽
-    var halfFar = (this.w / 2) / depthScale(BACKDROP_Y); // 最远处能看到的半宽
-    var lo = Math.min(halfNear, halfFar) + 20;
-    this.cam.x = Math.max(lo, Math.min(WORLD.w - lo, this.cam.x));
+    this.cam.x = this._clampCam(this.cam.x);
     this.cam.y = (BACKDROP_Y + WORLD.h) / 2;             // 纵向固定，不滚动
   };
 

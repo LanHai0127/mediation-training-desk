@@ -41,6 +41,7 @@ body {
 button, input { font-family: var(--font); }
 
 /* ---------------------------------------------------------------- 合规角标 */
+/* 首页角标在画布内（见 .stage-badge）；登录页仍用 fixed 版本 */
 .compliance-badge {
   position: fixed;
   left: 20px;
@@ -166,10 +167,10 @@ button, input { font-family: var(--font); }
 .stage canvas { display: block; width: 100%; touch-action: manipulation; }
 
 .hint {
-  /* 放左上：右下是人物常站的位置，提示条会正好盖住他 */
+  /* 左下：右上留给合规角标，两张小条不打架 */
   position: absolute;
   left: 12px;
-  top: 12px;
+  bottom: 12px;
   max-width: calc(100% - 24px);
   padding: 6px 12px;
   border-radius: 10px;
@@ -374,14 +375,7 @@ button, input { font-family: var(--font); }
   .brand h1 { font-size: 17px; }
   /* 别忘了 bottom：基类的 bottom:12px 会和这里的 top 同时生效，
      两个都设等于把角标拉成一条贯穿整屏的宽条 —— 这就是「页面被一块米色盖住」的真凶。 */
-  /* 手机上角标收成底部居中的一条，不跟正文抢位置；页面底部留白保证最后一屏不被它压住 */
-  .compliance-badge {
-    top: auto; bottom: 8px; left: 50%; right: auto;
-    transform: translateX(-50%);
-    font-size: 10px; padding: 3px 10px; opacity: .95;
-  }
-  body { padding-bottom: 40px; }
-  .foot { padding-bottom: 56px; }
+  .stage-badge { top: 8px; right: 8px; font-size: 10px; padding: 3px 8px; }
 
   /* 现场在前，卷宗在后 */
   .side { order: 2; }
@@ -391,7 +385,7 @@ button, input { font-family: var(--font); }
   /* iOS 输入框小于 16px 会在聚焦时自动放大整页 */
   .composer input { font-size: 16px; }
 
-  .hint { font-size: 11.5px; left: 8px; top: 8px; padding: 5px 9px; }
+  .hint { font-size: 11.5px; left: 8px; bottom: 8px; padding: 5px 9px; max-width: 62%; }
   .dock-head { padding: 8px 10px; }
   .dock-actions .chip { padding: 5px 10px; }
   .case-head h2 { font-size: 17px; }
@@ -574,6 +568,17 @@ li.ok { color: var(--ink-3); list-style: none; margin-left: -20px; }
 @media print {
   body { background: #fff; }
   .topbar, .app, .foot, .compliance-badge { display: none !important; }
+  .print-badge {
+    display: block !important;   /* 基础样式里的 display:none 在文件后面，不加 !important 会被它压住 */
+    margin-bottom: 10px;
+    padding: 4px 10px;
+    border: 1px solid #e0d3bd;
+    border-radius: 999px;
+    background: #fdf3e3;
+    color: #b45309;
+    font-size: 10.5px;
+    text-align: center;
+  }
   .modal { position: static; background: #fff; padding: 0; display: block; }
   .modal-box { box-shadow: none; width: 100%; max-height: none; }
   .modal-actions, .modal-head .x { display: none; }
@@ -582,6 +587,25 @@ li.ok { color: var(--ink-3); list-style: none; margin-left: -20px; }
 }
 
 /* ================================================================ 交互反馈 */
+/* 首页角标：定位在画布右上角，跟着场景走 */
+.stage-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  z-index: 6;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(253, 243, 227, .92);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+/* 打印时才出现的角标（画布被隐藏了） */
+.print-badge { display: none; }
+
 /* 骨架：首屏加载时别给一块空白 */
 .stage-skeleton {
   position: absolute;
@@ -703,4 +727,110 @@ button, .tab, .chip, .party, .opt { -webkit-tap-highlight-color: transparent; }
   .toast-wrap { right: 12px; left: 12px; bottom: 96px; align-items: center; max-width: none; }
   .toast { width: 100%; }
   .fab { right: 12px; bottom: 12px; }
+}
+
+/* ================================================================ 复盘报告 */
+.rep-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.rep-case { font-size: 12.5px; color: var(--ink-2); }
+.rep-time { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+.verdict-main { display: flex; align-items: baseline; gap: 10px; }
+.verdict-main b { font-size: 19px; }
+.verdict-main i {
+  font-style: normal;
+  font-size: 11.5px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .7);
+  border: 1px solid rgba(0, 0, 0, .06);
+  color: var(--ink-2);
+}
+
+/* 数字块：值 + 进度条 + 及格线刻度 */
+.num-box b { font-size: 21px; letter-spacing: -.01em; }
+.num-bar {
+  position: relative;
+  height: 5px;
+  margin-top: 7px;
+  border-radius: 3px;
+  background: #ecebe6;
+  overflow: hidden;
+}
+.num-bar i { display: block; height: 100%; border-radius: 3px; background: var(--brand); }
+.num-bar i.mark {
+  position: absolute;
+  top: -2px;
+  width: 2px !important;
+  height: 9px;
+  background: var(--ink-3);
+  border-radius: 1px;
+  transform: translateX(-1px);
+}
+.num-box.low .num-bar i:not(.mark) { background: #d98b6a; }
+.num-box.hit .num-bar i:not(.mark) { background: var(--ok); }
+
+.nums-note {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+
+/* 四维：一行一维，手机上也不会挤 */
+.dims { display: flex; flex-direction: column; gap: 8px; }
+.dim-row {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  break-inside: avoid;
+}
+.dim-row.trap { border-color: #ecd6c4; background: #fdf8f3; }
+.dim-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.dim-top b { font-size: 13.5px; }
+.dim-score {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.dim-bar { height: 4px; margin: 6px 0 7px; border-radius: 2px; background: #ecebe6; overflow: hidden; }
+.dim-bar i { display: block; height: 100%; background: var(--brand); border-radius: 2px; }
+.dim-row.trap .dim-bar i { background: #d98b6a; }
+.dim-pick { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.dim-alt { margin: 5px 0 0; font-size: 12.5px; color: var(--brand-ink); line-height: 1.6; }
+.dim-alt.warn { color: var(--warn); }
+
+/* 过程四小格 */
+.proc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.proc-cell {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  background: var(--bg-soft);
+}
+.proc-cell span { display: block; font-size: 11px; color: var(--ink-3); }
+.proc-cell b { font-size: 13.5px; font-weight: 600; }
+.proc-cell.warn { border-color: #ecd6c4; background: #fdf8f3; }
+.proc-cell.warn b { color: var(--warn); }
+
+@media (max-width: 640px) {
+  .nums { display: grid; grid-template-columns: 1fr 1fr; }
+  .proc-grid { grid-template-columns: 1fr 1fr; }
+  .rep-head { flex-direction: column; gap: 2px; }
+}
+
+@media print {
+  .dim-row, .proc-cell, .top3 li { break-inside: avoid; }
 }

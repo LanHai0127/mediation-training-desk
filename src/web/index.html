@@ -10,9 +10,6 @@
 </head>
 <body>
 
-<!-- 合规角标：全站常驻，打印与录屏也要在 -->
-<div class="compliance-badge">教学演练 · 虚构案例 · 非真实警情</div>
-
 <header class="topbar">
   <div class="brand">
     <span class="mark"></span>
@@ -44,6 +41,8 @@
 
     <div class="stage" id="stage">
       <canvas id="scene"></canvas>
+      <!-- 合规角标：固定在画布内。放 body 上会随页面滚动压住正文，放这里既常驻又不碍事 -->
+      <div class="compliance-badge stage-badge">教学演练 · 虚构案例 · 非真实警情</div>
       <div class="hint" id="hint">点地面走过去 · 点物件查看</div>
       <div class="stage-skeleton" id="skeleton"><span>正在布置现场…</span></div>
     </div>
@@ -122,6 +121,7 @@
       <h2 id="repTitle">训练复盘</h2>
       <button class="x" id="btnClose" aria-label="关闭">×</button>
     </div>
+    <div class="print-badge">教学演练 · 虚构案例 · 非真实警情</div>
     <div class="modal-body" id="reportBody"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="btnCopy">复制文本</button>

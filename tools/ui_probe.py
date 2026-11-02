@@ -128,6 +128,7 @@ def main() -> int:
     ap.add_argument("--eval", dest="eval_js", default="", help="点击后求值一段 JS 并打印结果")
     ap.add_argument("--eval-file", default="", help="从文件读 JS（避免命令行引号地狱）")
     ap.add_argument("--after", type=float, default=1.8, help="点击后等待秒数（等人走到位）")
+    ap.add_argument("--media", default="", help="模拟媒体类型，如 print（验打印版式）")
     args = ap.parse_args()
 
     edge = find_edge()
@@ -151,6 +152,8 @@ def main() -> int:
             "width": args.width, "height": args.height,
             "deviceScaleFactor": 2, "mobile": bool(args.mobile),
         })
+        if args.media:
+            cdp.call("Emulation.setEmulatedMedia", {"media": args.media})
         cdp.call("Page.navigate", {"url": args.url})
         time.sleep(args.wait)
         if args.click:

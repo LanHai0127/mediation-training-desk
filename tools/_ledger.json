@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-02T20:39:31",
+  "updated": "2026-11-02T20:50:28",
   "note": "由 tools/run_all.py --record 生成；文档里的断言数以这里为准",
   "suites": {
     "test_smoke": {
@@ -30,7 +30,7 @@
       "total": 16,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.7,
+      "seconds": 1.8,
       "ok": true,
       "skipped": false
     },
@@ -46,12 +46,12 @@
       "total": 20,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.9,
+      "seconds": 1.8,
       "ok": true,
       "skipped": false
     },
     "test_ui": {
-      "total": 15,
+      "total": 17,
       "failed": 0,
       "exit": 0,
       "seconds": 18.6,
@@ -60,6 +60,6 @@
     }
   },
   "tools": {},
-  "total": 113,
+  "total": 115,
   "all_ok": true
 }
