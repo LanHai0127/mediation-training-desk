@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f4f1">
 <title>调解台 · 基层矛盾纠纷调解模拟训练系统</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/app.css">
@@ -12,51 +13,88 @@
 <!-- 合规角标：全站常驻，打印与录屏也要在 -->
 <div class="compliance-badge">教学演练 · 虚构案例 · 非真实警情</div>
 
-<main class="shell">
-  <header class="head">
-    <div class="kicker">训练台 · S1 骨架</div>
-    <h1>调解台</h1>
-    <p class="sub">基层矛盾纠纷调解模拟训练系统</p>
-  </header>
+<header class="topbar">
+  <div class="brand">
+    <span class="mark"></span>
+    <div>
+      <h1>调解台</h1>
+      <p>基层矛盾纠纷调解模拟训练系统</p>
+    </div>
+  </div>
+  <div class="top-right">
+    <span class="pill" id="llmPill">模型：检测中…</span>
+    <span class="pill ghost" id="stagePill">S2 · 场景层</span>
+  </div>
+</header>
 
-  <section class="grid">
-    <article class="card">
-      <div class="tag">案例</div>
-      <h2>选案</h2>
-      <p>噪音 / 宠物 / 高空抛物 / 劳资欠薪。每案带报警记录、现场照片、当事人情况。</p>
-      <div class="state">待接入 · S4</div>
-    </article>
-    <article class="card">
-      <div class="tag">现场</div>
-      <h2>查看与走访</h2>
-      <p>进现场看物件、听当事人说、把看到的记进本子。哪些是证据，哪些只是情绪。</p>
-      <div class="state">待接入 · S2</div>
-    </article>
-    <article class="card">
-      <div class="tag">谈话</div>
-      <h2>背靠背 / 面对面</h2>
-      <p>分别谈时肯说的，当面对质时可能翻脸。说错一句，对方就不肯签字了。</p>
-      <div class="state">待接入 · S5</div>
-    </article>
-    <article class="card">
-      <div class="tag">判定</div>
-      <h2>方案与结局</h2>
-      <p>四维判定：诉求、底线、证据、台阶。谈不成也是合格结局，依法告知并转办。</p>
-      <div class="state">待接入 · S3</div>
-    </article>
-    <article class="card">
-      <div class="tag">复盘</div>
-      <h2>训练报告</h2>
-      <p>哪句话把对方逼死了、哪个诉求全程没碰、下次该怎么开口——都能导出。</p>
-      <div class="state">待接入 · S6</div>
-    </article>
+<main class="app">
+
+  <!-- 左：现场 -->
+  <section class="stage-wrap">
+    <div class="case-head">
+      <div>
+        <h2 id="caseTitle">正在载入案子…</h2>
+        <p id="caseBrief"></p>
+      </div>
+      <div class="scene-tabs" id="sceneTabs"></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="scene"></canvas>
+      <div class="hint" id="hint">点地面走过去 · 点物件查看</div>
+    </div>
+
+    <div class="dialog-dock" id="dock">
+      <div class="dock-head">
+        <div class="who" id="who">选一位当事人开始谈话</div>
+        <div class="dock-actions">
+          <button class="chip" id="btnFace" data-channel="face">面对面</button>
+          <button class="chip" id="btnSep" data-channel="separate">单独谈</button>
+          <button class="chip ghost" id="btnOffline" title="演示：不调模型，只走剧本台词">离线演示</button>
+        </div>
+      </div>
+      <div class="thread" id="thread"></div>
+      <form class="composer" id="composer" autocomplete="off">
+        <input id="say" type="text" placeholder="说点什么…（先共情，再讲规矩）" maxlength="120">
+        <button type="submit" id="send">说</button>
+      </form>
+      <div class="meters" id="meters"></div>
+    </div>
   </section>
 
-  <footer class="foot">
-    <p>本系统为教学演练工具，全部案件、姓名、地址、电话均为虚构。不替代真实执法决策，不出具任何具有法律效力的文书。</p>
-    <p class="ver">版本 v0.1 · 阶段 S1</p>
-  </footer>
+  <!-- 右：卷宗 -->
+  <aside class="side">
+    <div class="card">
+      <h3>报警记录</h3>
+      <p class="alarm" id="alarmText"></p>
+      <div class="meta-line" id="alarmMeta"></div>
+    </div>
+
+    <div class="card">
+      <h3>当事人</h3>
+      <div class="party-list" id="partyList"></div>
+    </div>
+
+    <div class="card">
+      <h3>现场看到的 <span class="count" id="factCount">0</span></h3>
+      <ul class="facts" id="factList">
+        <li class="empty">还没有记下任何东西。走到物件旁边点它。</li>
+      </ul>
+    </div>
+
+    <div class="card note">
+      <h3>这一步练什么</h3>
+      <p id="drill">先在现场把"影响"变成能说出时间、次数、来源的事实；再决定要不要把两人叫到一起。</p>
+    </div>
+  </aside>
 </main>
 
+<footer class="foot">
+  <p>本系统为教学演练工具，全部案件、姓名、地址、电话均为虚构。不替代真实执法决策，不出具任何具有法律效力的文书。</p>
+  <p class="ver">版本 v0.2 · 阶段 S2 · 场景 / 对话 / 降级</p>
+</footer>
+
+<script src="/static/scene.js"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,284 @@
+/* 调解台 · 前端胶水层
+ *
+ * 职责单一：把 API、场景、面板接起来，不在这里写业务规则。
+ * 判定与状态推进都在服务端（见 src/game/dialogue.py），前端只负责显示。
+ */
+(function () {
+  "use strict";
+
+  var S = window.MediationScene;
+
+  var state = {
+    caseData: null,
+    sessionId: "",
+    sceneId: "",
+    scene: null,
+    channel: "face",
+    partyId: "",
+    offline: false,
+    facts: {},
+    scenes: {}
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ------------------------------------------------------------ 工具
+  function api(path, body) {
+    var opt = { method: body ? "POST" : "GET", headers: {} };
+    if (body) {
+      opt.headers["Content-Type"] = "application/json";
+      opt.body = JSON.stringify(body);
+    }
+    return fetch(path, opt).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) { throw new Error(d.error || ("HTTP " + r.status)); }
+        return d;
+      });
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  // ------------------------------------------------------------ 启动
+  function boot() {
+    api("/api/llm/status").then(function (d) {
+      var on = d.llm && d.llm.enabled;
+      $("llmPill").textContent = on ? ("模型：" + d.llm.model + " · 在线") : "模型：未配置 · 剧本台词";
+      $("llmPill").classList.toggle("ok", !!on);
+    }).catch(function () {
+      $("llmPill").textContent = "模型：状态未知";
+    });
+
+    api("/api/cases").then(function (d) {
+      if (!d.cases || !d.cases.length) { throw new Error("没有可用案子"); }
+      return api("/api/case/" + d.cases[0].id);
+    }).then(function (cs) {
+      state.caseData = cs;
+      cs.scenes.forEach(function (sc) { state.scenes[sc.id] = sc; });
+      renderCase();
+      return api("/api/session", { caseId: cs.id });
+    }).then(function (d) {
+      state.sessionId = d.view.sessionId;
+      state.sceneId = d.view.sceneId || (state.caseData.scenes[0] || {}).id;
+      mountScene(state.sceneId);
+      renderParties();
+    }).catch(function (e) {
+      $("caseTitle").textContent = "载入失败：" + e.message;
+    });
+  }
+
+  // ------------------------------------------------------------ 案子头部
+  function renderCase() {
+    var c = state.caseData;
+    $("caseTitle").textContent = c.title;
+    $("caseBrief").textContent = (c.meta && c.meta.brief) || "";
+    $("alarmText").textContent = (c.alarm && c.alarm.text) || "";
+    $("alarmMeta").textContent = [(c.alarm && c.alarm.time), (c.alarm && c.alarm.source)]
+      .filter(Boolean).join(" · ");
+
+    var tabs = $("sceneTabs");
+    tabs.innerHTML = "";
+    c.scenes.forEach(function (sc) {
+      var b = document.createElement("button");
+      b.className = "tab";
+      b.textContent = sc.name;
+      b.dataset.scene = sc.id;
+      b.addEventListener("click", function () { switchScene(sc.id); });
+      tabs.appendChild(b);
+    });
+  }
+
+  function markTab() {
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+      b.classList.toggle("on", b.dataset.scene === state.sceneId);
+    });
+  }
+
+  // ------------------------------------------------------------ 场景
+  function mountScene(sceneId) {
+    state.sceneId = sceneId;
+    var data = state.scenes[sceneId];
+    if (!data) { return; }
+    var canvas = $("scene");
+    if (!state.scene) {
+      state.scene = new S.Scene(canvas, data);
+      state.scene.onSpot = onSpot;
+      requestAnimationFrame(loop);
+    } else {
+      state.scene.data = data;
+      state.scene.setSpots(data.spots);
+      state.scene.player = { x: (data.spawn || {}).x || 700, y: (data.spawn || {}).y || 760 };
+      state.scene.cam.x = state.scene.player.x;
+      state.scene.path = null;
+      state.scene.pending = null;
+    }
+    state.scene.resize();
+    markTab();
+    $("hint").textContent = "点地面走过去 · 点物件查看";
+  }
+
+  var last = 0;
+  function loop(t) {
+    var dt = Math.min(0.05, (t - last) / 1000 || 0.016);
+    last = t;
+    state.scene.update(dt);
+    state.scene.render();
+    requestAnimationFrame(loop);
+  }
+
+  function switchScene(sceneId) {
+    if (sceneId === state.sceneId) { return; }
+    api("/api/scene", { sessionId: state.sessionId, sceneId: sceneId }).catch(function () {});
+    mountScene(sceneId);
+  }
+
+  // ------------------------------------------------------------ 看点
+  function onSpot(spot) {
+    if (spot.goto) { switchScene(spot.goto); return; }
+    api("/api/look", { sessionId: state.sessionId, spotId: spot.id }).then(function (d) {
+      $("hint").textContent = spot.label + "：" + (spot.look || "");
+      if (spot.fact && state.caseData.facts) {
+        var f = state.caseData.facts.filter(function (x) { return x.id === spot.fact; })[0];
+        if (f) { remember(f); }
+      }
+      if (spot.talk) { pickParty(spot.talk); }
+    }).catch(function (e) {
+      $("hint").textContent = "查看失败：" + e.message;
+    });
+  }
+
+  function remember(fact) {
+    if (state.facts[fact.id]) { return; }
+    state.facts[fact.id] = fact;
+    var list = $("factList");
+    var empty = list.querySelector(".empty");
+    if (empty) { empty.remove(); }
+    var li = document.createElement("li");
+    li.innerHTML = "<strong>" + esc(fact.title) + "</strong><span>" + esc(fact.text) + "</span>";
+    list.appendChild(li);
+    $("factCount").textContent = Object.keys(state.facts).length;
+  }
+
+  // ------------------------------------------------------------ 当事人
+  function renderParties() {
+    var box = $("partyList");
+    box.innerHTML = "";
+    state.caseData.partyOrder.forEach(function (pid) {
+      var p = state.caseData.parties[pid];
+      if (!p) { return; }
+      var b = document.createElement("button");
+      b.className = "party";
+      b.dataset.party = pid;
+      b.innerHTML = "<b>" + esc(p.name) + "</b><span>" + esc(p.role) + "</span>";
+      b.addEventListener("click", function () { pickParty(pid); });
+      box.appendChild(b);
+    });
+  }
+
+  function pickParty(pid) {
+    state.partyId = pid;
+    var p = state.caseData.parties[pid];
+    Array.prototype.forEach.call(document.querySelectorAll(".party"), function (b) {
+      b.classList.toggle("on", b.dataset.party === pid);
+    });
+    $("who").textContent = p.name + " · " + p.role;
+    $("say").placeholder = "对" + p.name + "说点什么…";
+    if (!state.threads) { state.threads = {}; }
+    renderThread();
+  }
+
+  function renderThread() {
+    var t = $("thread");
+    t.innerHTML = "";
+    var rows = (state.threads && state.threads[state.partyId]) || [];
+    rows.forEach(function (m) {
+      var div = document.createElement("div");
+      div.className = "msg " + (m.role === "me" ? "me" : "them");
+      div.innerHTML = "<div class='bubble'>" + esc(m.text) + "</div>" +
+        (m.note ? "<div class='note-line'>" + esc(m.note) + "</div>" : "");
+      t.appendChild(div);
+    });
+    t.scrollTop = t.scrollHeight;
+  }
+
+  // ------------------------------------------------------------ 说话
+  $("composer").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!state.partyId) {
+      $("hint").textContent = "先在右侧选一位当事人。";
+      return;
+    }
+    var text = $("say").value.trim();
+    if (!text) { return; }
+    $("say").value = "";
+    push("me", text);
+    $("send").disabled = true;
+
+    api("/api/dialogue", {
+      sessionId: state.sessionId,
+      partyId: state.partyId,
+      text: text,
+      channel: state.channel,
+      offline: state.offline
+    }).then(function (d) {
+      var note = "";
+      if (d.overstep) { note = "⚠ 越界承诺：你答应了无权答应或做不到的事"; }
+      if (d.reveal) { note = (note ? note + " · " : "") + "（单独谈话 · 他说出了实情）" + d.reveal; }
+      push("them", d.reply, note);
+      renderMeters(d.state, d.degraded);
+    }).catch(function (e) {
+      push("them", "（服务异常：" + e.message + "）");
+    }).then(function () {
+      $("send").disabled = false;
+      $("say").focus();
+    });
+  });
+
+  function push(role, text, note) {
+    if (!state.threads) { state.threads = {}; }
+    var key = state.partyId;
+    (state.threads[key] = state.threads[key] || []).push({ role: role, text: text, note: note });
+    renderThread();
+  }
+
+  function renderMeters(st, degraded) {
+    if (!st) { return; }
+    var m = $("meters");
+    m.innerHTML =
+      bar("信任", st.trust) + bar("情绪", st.mood) +
+      (degraded ? "<span class='deg'>本条走剧本台词</span>" : "");
+  }
+
+  function bar(label, v) {
+    var pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
+    return "<div class='meter'><span>" + label + "</span>" +
+      "<i><b style='width:" + pct + "%'></b></i><em>" + pct + "</em></div>";
+  }
+
+  // ------------------------------------------------------------ 模式切换
+  Array.prototype.forEach.call(document.querySelectorAll("[data-channel]"), function (b) {
+    b.addEventListener("click", function () {
+      state.channel = b.dataset.channel;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-channel]"), function (x) {
+        x.classList.toggle("on", x === b);
+      });
+      $("hint").textContent = state.channel === "separate"
+        ? "单独谈话：没有第三方在场，对方更容易说真话，但事后要如实告知另一方。"
+        : "面对面：两人都在场，说错一句就可能翻脸。";
+    });
+  });
+
+  $("btnOffline").addEventListener("click", function () {
+    state.offline = !state.offline;
+    $("btnOffline").classList.toggle("on", state.offline);
+    $("hint").textContent = state.offline
+      ? "离线演示：不调模型，只走剧本台词。功能不中断，只是话变呆板。"
+      : "已恢复：能连模型就走模型。";
+  });
+
+  boot();
+})();

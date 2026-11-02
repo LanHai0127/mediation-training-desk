@@ -84,3 +84,47 @@
 **下一步**
 - S2 场景层：先定 4 类场景与 kind 清单（25~30 种），再写 `scene.js`（A\* + 镜头 + `BACKDROP_Y` 单一常量），
   然后 `test_art.py` 双向契约；顺序不能倒——先有注册表再有绘制函数，最后才有 scenes.json 引用
+
+## 2026-11-02 · 第 0 天 · S2 场景 + S5 对话（补做）
+
+**做了什么**
+- `src/web/scene.js`（约 780 行）：2.5D 场景引擎
+  · 29 个 `spotXxx` 绘制函数 + `SPOT_KINDS` 注册表；**认不出的 kind 画红色问号框**，不静默回落
+  · 投影：远端 0.62 → 近端 1.24 的纵深缩放；物件大小另用 `artScale()` 按画布宽度自适应
+  · 画家算法按 y 排序，人夹在景物中间；`BACKDROP_Y` 单一常量同时当地平线与寻路上边界
+  · A\* 网格寻路（28px 格、斜走不切角）、点击走动、点物件查看、走进范围才可交互
+  · 挂墙件（窗/门/钟/公示牌/暖气片）单独一档缩放并钉在地平线上，否则一扇门会顶出画布
+- 移动端：Pointer Events（点一下就走，不依赖鼠标）、画布按容器宽 + DPR 自适应、`touch-action: manipulation`、输入框 16px 防 iOS 聚焦放大、窄屏单列 + 场景标签横滑
+- 案子 `src/cases/case_01_noise/case.json`：3 场景 / 32 点位 / 2 当事人 / 6 条事实，29 种 kind 全部用上
+- 对话层 `src/game/dialogue.py`：意图识别（道歉/共情/承诺/事实/施压）→ 状态增量（trust/mood）→ 出口语；
+  独立谈话 +0.04 信任，信任过 0.62 吐隐情且只吐一次；越界承诺识别；事实白名单过滤
+- 模型层 `src/game/llm.py`：OpenAI 兼容 `/chat/completions`，**任何失败返回 None 不抛异常**；只从环境变量或 `config.local.json` 读密钥
+- 服务端新增 `/api/cases`、`/api/case/<id>`、`/api/session`、`/api/look`、`/api/scene`、`/api/dialogue`、`/api/llm/status`
+- `tools/ui_probe.py`：CDP 布局探针，直接问浏览器 `scrollWidth` 与超界元素
+- 测试：`test_art.py`（9 项）、`test_llm.py`（14 项），`run_all` 扩到 3 套
+
+**为什么这么做**
+- 判定与对话彻底分开：对话接口只回台词与状态，**不返回任何判定字段**，模型无法影响结论
+- 场景先立"双向契约"再画：数据用了注册表没有的 kind 必须变红，注册了没人用的也算问题（死代码）
+- 移动端不当"缩小版桌面"：点地面就走、点物件就看，不用鼠标悬停这种手机上不存在的能力
+
+**卡在哪 / 怎么解的**
+- JSON 里混进半角引号（`"再忍两天"`）→ 解析直接失败。规矩：中文引号一律用「」，`json.load` 每次改完必跑
+- 首屏看起来"被一块米色盖住"：`.compliance-badge` 基类有 `bottom:12px`，窄屏媒体查询又给了 `top:8px`，
+  两个都设 → 元素被拉成贯穿整屏的宽条。修法是窄屏显式 `top:auto`
+- 窄屏截图一直显示"右侧被裁"，以为布局溢出。**用 `--window-size` 截图是假象**（窗口有最小宽度、也没有移动端视口），
+  换成 CDP `Emulation.setDeviceMetricsOverride` 一量：`scrollWidth == 390`，根本没有溢出。
+  教训：判断有没有溢出要问浏览器，不要看截图
+- 物件统一放大 1.8 倍后，手机上只剩"人和一台电视" → 改成按画布宽度的比例缩放（下限 0.6）
+
+**改动文件**
+- 新建：`src/web/scene.js`、`src/web/app.js`、`src/game/{__init__,dialogue,llm}.py`、`src/cases/case_01_noise/case.json`、`src/config.local.example.json`、`tools/{test_art,test_llm,ui_probe}.py`、`README.md`
+- 改写：`src/web/index.html`、`src/web/app.css`（布局 + 移动端）、`src/server.py`（+6 个接口）
+
+**验收数据**
+- `python tools/run_all.py --record` → **3 套 / 33 项断言全绿**（test_smoke 10 · test_art 9 · test_llm 14），ledger `all_ok: true`
+- 未配置模型时对话全走剧本：同一句问 3 次回复不全相同、触发词使情绪下降、越界承诺被抓、隐情只吐一次
+- 移动端 390×844：`scrollWidth == 390`，无横向溢出；截图见 `tools/_logs/m390b.png`
+
+**下一步**
+- S3 判定内核（四维：诉求/底线/证据/台阶 + 覆盖率 + 破裂也是合格结局），再 S4 补案 02~04

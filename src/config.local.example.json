@@ -1,0 +1,15 @@
+{
+  "_说明": "复制成 config.local.json 后填自己的值。这个文件不进版本库，密钥不写日志、不进代码。",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8770,
+    "llmPerMinutePerIp": 20,
+    "llmGlobalPerDay": 800
+  },
+  "llm": {
+    "baseUrl": "https://api.deepseek.com/v1",
+    "key": "sk-替换成你自己的密钥",
+    "model": "deepseek-chat",
+    "timeout": 10
+  }
+}

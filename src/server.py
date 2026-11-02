@@ -40,6 +40,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from auth import Auth  # noqa: E402
+from game import LLMClient, Session, discover_cases, public_case  # noqa: E402
 
 WEB_DIR = ROOT / "web"
 LOGIN_PAGE = WEB_DIR / "login.html"
@@ -75,6 +76,9 @@ def git_hash() -> str:
 
 CONFIG = load_config()
 AUTH = Auth(ROOT)          # 没有 auth.local.json 时不拦（本地裸跑 / 自测）
+LLM = LLMClient.from_project(ROOT, CONFIG)
+CASES = {c["id"]: c for c in discover_cases(ROOT / "cases")}
+SESSIONS: dict[str, Session] = {}          # 训练会话（内存即可：演练不需要跨重启续局）
 BUILD_GIT = git_hash()
 SERVER_CFG = CONFIG.get("server") or {}
 LOCK = threading.Lock()
@@ -284,15 +288,35 @@ class Handler(BaseHTTPRequestHandler):
                 return self._static("index.html")
             if path.startswith("/static/"):
                 return self._static(path[len("/static/"):])
+            if path == "/api/cases":
+                return self._json({
+                    "cases": [{
+                        "id": c["id"],
+                        "title": c.get("title", ""),
+                        "subtitle": c.get("meta", {}).get("subtitle", ""),
+                        "difficulty": c.get("meta", {}).get("difficulty", ""),
+                        "playtime": c.get("meta", {}).get("playtime", ""),
+                        "brief": c.get("meta", {}).get("brief", ""),
+                        "scenes": len(c.get("scenes") or []),
+                        "parties": len(c.get("parties") or {}),
+                    } for c in CASES.values()]
+                })
+            if path.startswith("/api/case/"):
+                cid = path[len("/api/case/"):]
+                if cid not in CASES:
+                    return self._json({"error": "case not found"}, 404)
+                return self._json(public_case(CASES[cid]))
+            if path == "/api/llm/status":
+                return self._json({"llm": LLM.status(), "offlineScript": True})
             if path == "/api/health":
                 _fs = AUTH.fail_state()
                 return self._json(
                     {
                         "ok": True,
-                        "stage": "S1",
+                        "stage": "S2",
                         "build": {"ts": BUILD_TS, "git": BUILD_GIT},
-                        "cases": [],
-                        "llm": False,
+                        "cases": list(CASES),
+                        "llm": LLM.enabled,
                         "llmLimits": RATE.snapshot(),
                         "auth": {
                             "enabled": AUTH.enabled,
@@ -322,6 +346,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._do_logout()
             if not self._auth_gate(path):
                 return
+            if path == "/api/session":
+                return self._new_session(data)
+            if path == "/api/look":
+                return self._look(data)
+            if path == "/api/scene":
+                return self._scene(data)
+            if path == "/api/dialogue":
+                return self._dialogue(data)
             return self._json({"error": "not found"}, 404)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
@@ -364,6 +396,77 @@ class Handler(BaseHTTPRequestHandler):
         print("[auth] 登录成功 user=%s ip=%s" % (user, ip))
         self._json({"ok": True, "user": user, "expiresIn": int(ttl)},
                    extra={"Set-Cookie": AUTH.cookie_header(token, self._secure)})
+
+    # ---------------------------------------------------------- 训练会话
+    def _session_of(self, sid: str) -> Session | None:
+        return SESSIONS.get(sid or "")
+
+    def _new_session(self, data: dict[str, Any]) -> None:
+        cid = str(data.get("caseId") or "")
+        if cid not in CASES:
+            return self._json({"error": "case not found"}, 404)
+        s = Session(CASES[cid], LLM)
+        SESSIONS[s.id] = s
+        # 会话表别无限长：超过 200 个就把最早的丢掉（演练场景不会有这么多并发）
+        if len(SESSIONS) > 200:
+            for k in sorted(SESSIONS, key=lambda x: SESSIONS[x].created)[:50]:
+                SESSIONS.pop(k, None)
+        self._json({"ok": True, "view": s.view()})
+
+    def _look(self, data: dict[str, Any]) -> None:
+        s = self._session_of(str(data.get("sessionId") or ""))
+        if not s:
+            return self._json({"error": "session not found"}, 404)
+        res = s.look(str(data.get("spotId") or ""))
+        res["view"] = s.view()
+        self._json(res)
+
+    def _scene(self, data: dict[str, Any]) -> None:
+        s = self._session_of(str(data.get("sessionId") or ""))
+        if not s:
+            return self._json({"error": "session not found"}, 404)
+        sid = str(data.get("sceneId") or "")
+        if any(sc.get("id") == sid for sc in s.case.get("scenes", [])):
+            s.scene_id = sid
+            return self._json({"ok": True, "view": s.view()})
+        self._json({"ok": False, "error": "没有这个场景"}, 400)
+
+    def _dialogue(self, data: dict[str, Any]) -> None:
+        """当事人对话：规则定状态、模型出口语；模型不通就退剧本台词。
+
+        限流只针对"本来就要调模型"的请求：离线请求不该占额度，
+        否则演示时一被限流，连剧本台词都会被误当成"额度用完"。
+        """
+        s = self._session_of(str(data.get("sessionId") or ""))
+        if not s:
+            return self._json({"error": "session not found"}, 404)
+        pid = str(data.get("partyId") or "")
+        text = str(data.get("text") or "")
+        channel = "separate" if data.get("channel") == "separate" else "face"
+        offline = bool(data.get("offline")) or not LLM.enabled
+
+        limited = ""
+        if not offline:
+            ok, why = RATE.allow(self._client_ip())
+            if not ok:
+                limited = why
+
+        if offline or limited:
+            saved, s.dialogue.client = s.dialogue.client, None
+            try:
+                res = s.dialogue.talk(pid, text, channel)
+            finally:
+                s.dialogue.client = saved
+        else:
+            res = s.dialogue.talk(pid, text, channel)
+
+        res["degraded"] = bool(offline or limited)
+        res["degradedNote"] = ("模型未启用或调用失败，本条走剧本台词" if offline and not LLM.enabled
+                               else (limited or ""))
+        if pid not in [t["partyId"] for t in s.talked]:
+            s.talked.append({"partyId": pid, "channel": channel})
+        res["view"] = s.view()
+        self._json(res)
 
     def _do_logout(self) -> None:
         AUTH.revoke(Auth.cookie_from(self.headers.get("Cookie") or ""))

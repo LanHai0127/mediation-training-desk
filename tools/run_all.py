@@ -44,6 +44,10 @@ BASE = "http://127.0.0.1:%d" % PORT
 SUITES: list[tuple[str, list[str], bool]] = [
     # S1：服务能起、页面能开、安全头与越界读护栏在。
     ("test_smoke", ["tools/test_smoke.py"], True),
+    # S2：场景物件的双向契约（离线，秒级，拼错一个 kind 必须变红）。
+    ("test_art", ["tools/test_art.py"], False),
+    # S5：对话层——拔模型能走、不复读、不返回判定、事实白名单。
+    ("test_llm", ["tools/test_llm.py"], True),
 ]
 
 LOG_DIR = ROOT / "tools" / "_logs"

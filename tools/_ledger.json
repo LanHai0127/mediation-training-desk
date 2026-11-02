@@ -1,16 +1,30 @@
 {
-  "updated": "2026-11-02T19:44:35",
+  "updated": "2026-11-02T20:00:06",
   "note": "由 tools/run_all.py --record 生成；文档里的断言数以这里为准",
   "suites": {
     "test_smoke": {
       "total": 10,
       "failed": 0,
       "exit": 0,
-      "seconds": 0.7,
+      "seconds": 0.6,
+      "ok": true
+    },
+    "test_art": {
+      "total": 9,
+      "failed": 0,
+      "exit": 0,
+      "seconds": 1.3,
+      "ok": true
+    },
+    "test_llm": {
+      "total": 14,
+      "failed": 0,
+      "exit": 0,
+      "seconds": 0.8,
       "ok": true
     }
   },
   "tools": {},
-  "total": 10,
+  "total": 33,
   "all_ok": true
 }
