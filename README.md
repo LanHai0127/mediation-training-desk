@@ -91,7 +91,7 @@ tools/
   test_judge.py      判定内核与复盘（28 项）
   test_laws.py       法条库可溯源（16 项）
   test_api.py        接口边界与并发（20 项）
-  test_ui.py         浏览器真实点击流程（15 项，需 websocket-client）
+  test_ui.py         浏览器真实点击/拖动流程（17 项，需 websocket-client）
   ui_probe.py        CDP 布局探针（量 scrollWidth / 抓窄屏溢出 / 模拟真实点击）
   make_ppt.py        生成一页 PPT（数字取自 ledger）
 docs/
