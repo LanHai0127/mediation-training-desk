@@ -14,13 +14,17 @@
 
 ## S1 骨架
 
-- [ ] 引入 HTTP 服务骨架（`src/server.py`），改文件头，能起服务
-- [ ] 引入认证 / 限流 / 路径隔离（`src/auth.py`）
-- [ ] 引入 A\* 寻路 + 镜头跟随 + 移动碰撞（`src/web/game.js` 的无关 SPOT_KINDS 部分）
+- [x] 引入 HTTP 服务骨架（`src/server.py`），改文件头，能起服务（8770）
+- [x] 引入认证 / 限流 / 路径隔离（`src/auth.py`，cookie 与 env 前缀已换成本项目）
+- [x] 建 `tools/run_all.py` + `tools/_ledger.json` 空壳，套件清单换成新项目的
+- [x] 空页面能开（`src/web/index.html`，含合规角标与页脚声明）
+- [x] `run_all.py --record` 跑出 1 套 / 10 条断言全绿，ledger 已写
+- [x] 版本探针 `/__ver`（build 时间戳 + git 短 hash）
+- [x] 安全头 + 越界读护栏有断言守着
+- [x] `start.bat` 双击即用
+- [ ] 引入 A\* 寻路 + 镜头跟随 + 移动碰撞（`src/web/scene.js`，S2 场景层一起做）
 - [ ] `BACKDROP_Y` 单一常量：渲染地平线与寻路边界共用一个值
-- [ ] 建 `tools/run_all.py` + `tools/_ledger.json` 空壳，套件清单换成新项目的
-- [ ] 空页面能开，`run_all.py` 跑出 1 套 1 条断言全绿
-- [ ] 清洁 grep 0 命中，LOG 追加 S1
+- [x] 清洁 grep 0 命中，LOG 追加 S1
 
 ## S2 场景层
 

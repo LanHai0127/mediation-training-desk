@@ -37,17 +37,17 @@ body {
 
 .compliance-badge {
   position: fixed;
-  top: 0;
-  right: 0;
+  top: 12px;
+  right: 12px;
   z-index: 9999;
-  padding: 6px 14px;
-  border-bottom-left-radius: var(--r-md);
+  padding: 5px 12px;
+  border-radius: 999px;
   background: var(--warn-soft);
   color: var(--warn);
   border: 1px solid #f0dcc0;
-  border-top: 0;
-  border-right: 0;
   font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
   pointer-events: none;
 }
 

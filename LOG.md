@@ -48,3 +48,39 @@
 
 **下一步**
 - 进 S1：引入服务骨架与验收骨架，`run_all.py --record` 跑通 1 套 1 条断言
+
+## 2026-11-02 · 第 0 天 · S1 骨架
+
+**做了什么**
+- `src/server.py`（约 470 行，标准库零依赖）：路由骨架 + 安全头 + CSP + 登录闸 + 限流器 + 静态服务 + `GameServer.request_queue_size = 256`
+- `src/auth.py`：登录鉴权（PBKDF2、双闸失败限速、失败计数落盘、回环豁免需"对端也是回环"）；**cookie 名与两个环境变量前缀已换成本项目的**
+- 版本探针 `GET /__ver` → build 时间戳 + git 短 hash + pid + port（部署后靠它确认线上跑的是刚部署的那份）
+- 健康检查 `GET /api/health`：阶段、构建戳、限流快照、登录状态（只报数量，不报名单）
+- 页面：`src/web/index.html` + `app.css`（政务蓝 + 暖灰，14 个 `:root` 变量，不硬写颜色），登录页三件（`login.html/css/js`）与中性图标 `favicon.svg`
+- 验收脚手架 `tools/run_all.py`（台账式记账 + 拒绝假账护栏）+ `tools/test_smoke.py`（10 条断言）
+- `start.bat`、`.gitignore`、首次 git 提交 `63040a0`
+
+**为什么这么做**
+- 从第一分钟就有验收回路：先让"空壳能跑 + 能记账"，后面每加一层只往里加断言，不留到最后补测试
+- 登录闸、CSP、越界读护栏这些是**部署那天才发现就晚了**的东西，趁骨架还小先钉住，有断言守着
+- 合规角标与页脚声明写进入口页模板，后面每个新页面复制同一段，不在最后统一补
+
+**卡在哪 / 怎么解的**
+- 验收脚本一开始连不上本机端口：本机 `HTTP_PROXY` 指向本地代理，`urllib` 会把 `127.0.0.1` 也交出去，表现是"服务没起"
+  → 两处都改用 `ProxyHandler({})` 显式绕开，并在起服务时设 `NO_PROXY`。这条以后所有自测脚本都照做
+- 首屏角标贴右边缘被裁 → 改成悬浮胶囊（`top/right: 12px` + `white-space: nowrap`）
+- `/__ver` 一开始返回 `git: nogit`：构建戳是**进程启动时的快照**，git 提交之后必须重启进程才会变
+  → 记下来：部署切换的判定标准是"探针里的 build/git 变了"，不做进程重启就等于没切
+
+**改动文件**
+- 新建：`src/server.py`、`src/auth.py`、`src/web/{index.html,app.css,login.html,login.css,login.js,favicon.svg}`、`tools/run_all.py`、`tools/test_smoke.py`、`start.bat`、`.gitignore`
+- 生成：`tools/_ledger.json`（test_smoke 10 项，all_ok: true）
+
+**验收数据**
+- `python tools/run_all.py --record` → 1 套 / **10 项断言全绿** / 0.7s / ledger 已写
+- `/__ver` → `build 2026-11-02T19:43:38+0800 · git 63040a0`
+- 故意把端口指到 9999 跑一次 → 提示"服务没起"并**拒绝记账**（护栏有效）
+
+**下一步**
+- S2 场景层：先定 4 类场景与 kind 清单（25~30 种），再写 `scene.js`（A\* + 镜头 + `BACKDROP_Y` 单一常量），
+  然后 `test_art.py` 双向契约；顺序不能倒——先有注册表再有绘制函数，最后才有 scenes.json 引用
