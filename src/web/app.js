@@ -107,6 +107,7 @@
     if (!state.scene) {
       state.scene = new S.Scene(canvas, data);
       state.scene.onSpot = onSpot;
+      window.__scene = state.scene;    // 给 UI 探针用：量投影与人物位置，不参与业务
       requestAnimationFrame(loop);
     } else {
       state.scene.data = data;

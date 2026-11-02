@@ -123,6 +123,10 @@ def main() -> int:
     ap.add_argument("--mobile", action="store_true", default=True)
     ap.add_argument("--shot", default="")
     ap.add_argument("--wait", type=float, default=2.5)
+    ap.add_argument("--click", default="", help="模拟点击画布坐标：x,y")
+    ap.add_argument("--read", default="", help="点击后读某个元素的 textContent（如 #hint）")
+    ap.add_argument("--eval", dest="eval_js", default="", help="点击后求值一段 JS 并打印结果")
+    ap.add_argument("--after", type=float, default=1.8, help="点击后等待秒数（等人走到位）")
     args = ap.parse_args()
 
     edge = find_edge()
@@ -148,6 +152,25 @@ def main() -> int:
         })
         cdp.call("Page.navigate", {"url": args.url})
         time.sleep(args.wait)
+        if args.click:
+            cx, cy = [int(v) for v in args.click.split(",")]
+            # 传进来的是"画布内坐标"，实际点击要用视口坐标：加上画布左上角偏移
+            rect = cdp.call("Runtime.evaluate", {
+                "expression": "(() => { const r=document.getElementById('scene').getBoundingClientRect();"
+                              " return JSON.stringify({x:r.left, y:r.top}); })()",
+                "returnByValue": True,
+            })["result"]["value"]
+            off = json.loads(rect)
+            cx, cy = int(cx + off["x"]), int(cy + off["y"])
+            # 用真实的 pointer/mouse 事件走一遍点击链路，而不是直接调 JS 函数 ——
+            # 要验的就是"手指点下去"这条路径本身。
+            for t in ("mousePressed", "mouseReleased"):
+                cdp.call("Input.dispatchMouseEvent", {
+                    "type": t, "x": cx, "y": cy, "button": "left", "clickCount": 1,
+                    "pointerType": "mouse",
+                })
+            time.sleep(args.after)
+
         res = cdp.call("Runtime.evaluate", {"expression": PROBE_JS, "returnByValue": True})
         data = json.loads(res["result"]["value"])
         print("视口宽 %d · 文档 scrollWidth %d · body %d"
@@ -162,6 +185,17 @@ def main() -> int:
                       % (o["tag"], o["id"], o["cls"], o["left"], o["right"], o["w"]))
         else:
             print("✓ 没有横向溢出")
+
+        if args.read:
+            r = cdp.call("Runtime.evaluate", {
+                "expression": "(() => { const e=document.querySelector(%r); return e ? e.textContent.trim() : '(找不到元素)'; })()" % args.read,
+                "returnByValue": True,
+            })
+            print("读 %s → %s" % (args.read, r["result"]["value"]))
+
+        if args.eval_js:
+            r = cdp.call("Runtime.evaluate", {"expression": args.eval_js, "returnByValue": True})
+            print("eval → %s" % json.dumps(r["result"].get("value"), ensure_ascii=False))
 
         if args.shot:
             shot = cdp.call("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False})

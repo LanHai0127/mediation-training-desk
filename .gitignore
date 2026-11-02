@@ -7,3 +7,6 @@ tools/_logs/
 __pycache__/
 *.pyc
 .DS_Store
+
+# 助手运行态
+.workbuddy/
