@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="调解台">
+  <!-- 中性图形：一张桌 + 两侧座椅，不使用任何徽标元素 -->
+  <rect width="64" height="64" rx="14" fill="#1d4ed8"/>
+  <rect x="14" y="26" width="36" height="5" rx="2.5" fill="#ffffff"/>
+  <rect x="20" y="31" width="4" height="14" rx="2" fill="#ffffff" opacity=".85"/>
+  <rect x="40" y="31" width="4" height="14" rx="2" fill="#ffffff" opacity=".85"/>
+  <circle cx="23" cy="45" r="3.2" fill="#ffffff"/>
+  <circle cx="41" cy="45" r="3.2" fill="#ffffff"/>
+  <path d="M20 21h24" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+</svg>

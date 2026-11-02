@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · 调解台</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/login.css">
+</head>
+<body>
+
+<div class="compliance-badge">教学演练 · 虚构案例 · 非真实警情</div>
+
+<main class="login">
+  <h1>调解台</h1>
+  <p class="sub">基层矛盾纠纷调解模拟训练系统</p>
+
+  <form id="f" autocomplete="on">
+    <label for="u">账号</label>
+    <input id="u" name="user" type="text" autocomplete="username" required>
+    <label for="p">口令</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit" id="go">进入训练台</button>
+    <p id="err" class="err" role="alert" aria-live="polite"></p>
+  </form>
+
+  <div class="notice">
+    <strong>这是演练系统，不是真实警情平台。</strong>
+    全部案件、姓名、地址、电话均为虚构；生成的任何文本不具法律效力。
+  </div>
+</main>
+
+<script src="/static/login.js"></script>
+</body>
+</html>

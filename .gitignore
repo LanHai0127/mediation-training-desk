@@ -1,0 +1,9 @@
+# 运行态，不进版本库
+saves/
+auth.local.json
+auth.state.json
+config.local.json
+tools/_logs/
+__pycache__/
+*.pyc
+.DS_Store

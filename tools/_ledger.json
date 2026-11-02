@@ -1,0 +1,16 @@
+{
+  "updated": "2026-11-02T19:43:07",
+  "note": "由 tools/run_all.py --record 生成；文档里的断言数以这里为准",
+  "suites": {
+    "test_smoke": {
+      "total": 10,
+      "failed": 0,
+      "exit": 0,
+      "seconds": 0.7,
+      "ok": true
+    }
+  },
+  "tools": {},
+  "total": 10,
+  "all_ok": true
+}
