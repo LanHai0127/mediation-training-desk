@@ -44,6 +44,8 @@
   }
 
   // ------------------------------------------------------------ 启动
+  window.__app = state;      // 给 UI 探针/演示脚本用：读会话、点方案，不参与业务
+
   function boot() {
     api("/api/llm/status").then(function (d) {
       var on = d.llm && d.llm.enabled;
@@ -55,7 +57,11 @@
 
     api("/api/cases").then(function (d) {
       if (!d.cases || !d.cases.length) { throw new Error("没有可用案子"); }
-      return api("/api/case/" + d.cases[0].id);
+      state.cases = d.cases;
+      var want = new URLSearchParams(location.search).get("case");
+      var pick = d.cases.filter(function (c) { return c.id === want; })[0] || d.cases[0];
+      renderCasePicker(pick.id);
+      return api("/api/case/" + pick.id);
     }).then(function (cs) {
       state.caseData = cs;
       cs.scenes.forEach(function (sc) { state.scenes[sc.id] = sc; });
@@ -66,8 +72,22 @@
       state.sceneId = d.view.sceneId || (state.caseData.scenes[0] || {}).id;
       mountScene(state.sceneId);
       renderParties();
+      renderPlan();
+      loadLaws(state.caseData.id);
     }).catch(function (e) {
       $("caseTitle").textContent = "载入失败：" + e.message;
+    });
+  }
+
+  // ------------------------------------------------------------ 选案
+  function renderCasePicker(current) {
+    var sel = $("casePick");
+    sel.innerHTML = (state.cases || []).map(function (c) {
+      return "<option value='" + esc(c.id) + "'" + (c.id === current ? " selected" : "") + ">" +
+        esc(c.title) + " · " + esc(c.difficulty) + "</option>";
+    }).join("");
+    sel.addEventListener("change", function () {
+      location.search = "?case=" + encodeURIComponent(sel.value);
     });
   }
 
@@ -164,6 +184,25 @@
     $("factCount").textContent = Object.keys(state.facts).length;
   }
 
+  // ------------------------------------------------------------ 法条
+  function loadLaws(cid) {
+    api("/api/laws?case=" + encodeURIComponent(cid) + "&n=3").then(function (d) {
+      var box = $("lawList");
+      var arts = d.articles || [];
+      $("lawCount").textContent = arts.length;
+      if (!arts.length) {
+        box.innerHTML = "<li class='empty'>没有匹配到条文。宁可不给，也不编一条。</li>";
+        return;
+      }
+      box.innerHTML = arts.map(function (a) {
+        return "<li><strong>" + esc(a.law) + " " + esc(a.article) + " · " + esc(a.title) +
+          "</strong><span>" + esc(a.gist) + "</span></li>";
+      }).join("");
+    }).catch(function () {
+      $("lawList").innerHTML = "<li class='empty'>条文库未载入。</li>";
+    });
+  }
+
   // ------------------------------------------------------------ 当事人
   function renderParties() {
     var box = $("partyList");
@@ -258,6 +297,139 @@
     var pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
     return "<div class='meter'><span>" + label + "</span>" +
       "<i><b style='width:" + pct + "%'></b></i><em>" + pct + "</em></div>";
+  }
+
+  // ------------------------------------------------------------ 方案与提交
+  function renderPlan() {
+    var box = $("planDims");
+    box.innerHTML = "";
+    state.plan = state.plan || {};
+    (state.caseData.dimensions || []).forEach(function (dim) {
+      var card = document.createElement("div");
+      card.className = "plan-dim";
+      var h = document.createElement("div");
+      h.className = "plan-dim-head";
+      h.innerHTML = "<b>" + esc(dim.name) + "</b><span>" + esc(dim.ask || "") + "</span>";
+      card.appendChild(h);
+      dim.options.forEach(function (opt) {
+        var lab = document.createElement("label");
+        lab.className = "opt";
+        var input = document.createElement("input");
+        input.type = "radio";
+        input.name = dim.id;
+        input.value = opt.id;
+        input.addEventListener("change", function () {
+          state.plan[dim.id] = opt.id;
+          Array.prototype.forEach.call(card.querySelectorAll(".opt"), function (x) {
+            x.classList.toggle("on", x.contains(input) && input.checked);
+          });
+        });
+        lab.appendChild(input);
+        lab.appendChild(document.createTextNode(opt.label));
+        card.appendChild(lab);
+      });
+      box.appendChild(card);
+    });
+  }
+
+  function submit(mode) {
+    if (!state.sessionId) { return; }
+    var picked = Object.keys(state.plan || {}).length;
+    if (mode === "agreement" && picked < (state.caseData.dimensions || []).length) {
+      $("hint").textContent = "还有 " + ((state.caseData.dimensions || []).length - picked) +
+        " 个维度没选。没想清楚的部分，谈完再交。";
+      return;
+    }
+    $("btnAgree").disabled = $("btnRefer").disabled = true;
+    api("/api/submit", { sessionId: state.sessionId, plan: state.plan, mode: mode })
+      .then(function (res) {
+        state.reportText = "";
+        showReport(res);
+      })
+      .catch(function (e) {
+        $("hint").textContent = "提交失败：" + e.message;
+      })
+      .then(function () {
+        $("btnAgree").disabled = $("btnRefer").disabled = false;
+      });
+  }
+
+  // ------------------------------------------------------------ 复盘
+  function showReport(res) {
+    var rep = res.report || {};
+    var body = $("reportBody");
+    var rows = (rep.dims || []).map(function (d) {
+      return "<tr><td>" + esc(d.name) + "</td><td>" + esc(d.chosen) +
+        "</td><td class='num'>" + d.quality.toFixed(2) + "</td><td>" +
+        (d.gap > 0.2 && d.best ? "更好的做法：" + esc(d.best)
+          : (d.lackFactsText ? "缺证据：" + esc(d.lackFactsText) : "—")) + "</td></tr>";
+    }).join("");
+    var top3 = (rep.top3 || []).map(function (t, i) {
+      return "<li><b>" + (i + 1) + "· " + esc(t.dim) + "</b><p>你： " + esc(t.what) +
+        "</p><p class='alt'>换成： " + esc(t.instead) + "</p>" +
+        (t.why ? "<p class='why'>" + esc(t.why) + "</p>" : "") + "</li>";
+    }).join("") || "<li class='ok'>没有明显失误。</li>";
+    var untouched = (rep.untouched || []).map(function (n) {
+      return "<li>" + esc(n.text) + "</li>";
+    }).join("") || "<li class='ok'>每条诉求都碰到了。</li>";
+    var p = rep.process || {};
+
+    $("repTitle").textContent = "训练复盘 · " + (rep.caseTitle || "");
+    body.innerHTML =
+      "<div class='verdict " + (rep.verdict === "合格" ? "good" : "bad") + "'>" +
+        "<div class='v-label'>" + esc(rep.ending ? rep.ending.label : "") + "</div>" +
+        "<div class='v-verdict'>" + esc(rep.verdict || "") + "</div>" +
+        "<p>" + esc(rep.why || "") + "</p></div>" +
+      "<div class='nums'>" +
+        num("覆盖率", rep.scores.coverage) + num("天花板", rep.scores.ceiling) +
+        num("总分", rep.scores.total) + num("置信度", rep.scores.confidence) + "</div>" +
+      "<h4>四维</h4><table class='rep'><thead><tr><th>维度</th><th>你的选择</th><th>得分</th><th>对照</th></tr></thead><tbody>" +
+      rows + "</tbody></table>" +
+      "<h4>关键失误</h4><ol class='top3'>" + top3 + "</ol>" +
+      "<h4>全程没碰到的诉求</h4><ul class='plain'>" + untouched + "</ul>" +
+      "<h4>过程</h4><p class='proc'>分别谈话：" + (p.separateTalk ? "有" : "没有") +
+        "（" + (p.separateCount || 0) + " 次）｜ 越界承诺：" + (p.oversteps || 0) + " 次 ｜ " +
+        "看过 " + (p.spotsSeen || 0) + " 处、记下 " + (p.factsSeen || 0) + " 条事实</p>" +
+      "<p class='audit'>报告里的每个数字都能在审计日志里找到来源（本份 " +
+        (rep.auditLines || 0) + " 条判定记录）。</p>" +
+      "<p class='foot-note'>" + esc(rep.footer || "") + "</p>";
+
+    state.sessionId = state.sessionId;
+    $("reportModal").hidden = false;
+    api("/api/report/" + state.sessionId).then(function (d) {
+      state.reportText = d.text || "";
+    }).catch(function () { state.reportText = ""; });
+  }
+
+  function num(label, v) {
+    var n = typeof v === "number" ? v : 0;
+    return "<div class='num-box'><span>" + label + "</span><b>" + n.toFixed(2) + "</b></div>";
+  }
+
+  $("btnAgree").addEventListener("click", function () { submit("agreement"); });
+  $("btnRefer").addEventListener("click", function () { submit("refer"); });
+  $("btnClose").addEventListener("click", function () { $("reportModal").hidden = true; });
+  $("btnPrint").addEventListener("click", function () { window.print(); });
+  $("btnAgain").addEventListener("click", function () { location.reload(); });
+  $("btnCopy").addEventListener("click", function () {
+    var txt = state.reportText || "";
+    if (!txt) { $("hint").textContent = "文本还没生成好，稍等一秒再点。"; return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () {
+        $("hint").textContent = "复盘文本已复制，可直接粘进台账。";
+      }).catch(function () { fallbackCopy(txt); });
+    } else {
+      fallbackCopy(txt);
+    }
+  });
+
+  function fallbackCopy(txt) {
+    var ta = document.createElement("textarea");
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); $("hint").textContent = "复盘文本已复制。"; } catch (e) { /* 忽略 */ }
+    document.body.removeChild(ta);
   }
 
   // ------------------------------------------------------------ 模式切换

@@ -46,6 +46,10 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("test_smoke", ["tools/test_smoke.py"], True),
     # S2：场景物件的双向契约（离线，秒级，拼错一个 kind 必须变红）。
     ("test_art", ["tools/test_art.py"], False),
+    # S3：四维判定、多解正确、审计可复盘（离线）。
+    ("test_judge", ["tools/test_judge.py"], False),
+    # S5：法条库可溯源、检索不乱给（离线）。
+    ("test_laws", ["tools/test_laws.py"], False),
     # S5：对话层——拔模型能走、不复读、不返回判定、事实白名单。
     ("test_llm", ["tools/test_llm.py"], True),
 ]

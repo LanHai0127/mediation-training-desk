@@ -128,3 +128,45 @@
 
 **下一步**
 - S3 判定内核（四维：诉求/底线/证据/台阶 + 覆盖率 + 破裂也是合格结局），再 S4 补案 02~04
+
+## 2026-11-02 · 第 0 天 · S3 判定 + S4 四案 + S5 法条 + S6 复盘（接模型后一次做完）
+
+**做了什么**
+- `src/judge/kernel.py`：`noul` / `choice` / `score` 三原语 + 温度 0.8 softmax + 置信度校准（base = 0.5·top + 0.5·margin，再乘 0.6+0.4·覆盖率）
+- `src/judge/mediation.py`：四维判定（诉求/底线/证据/台阶）、覆盖率、**天花板**、过程分、结局路由；阈值写成 THRESH_ACT 0.62 / PASS 0.60 / RUPTURE_CEILING 0.40，注释标明经验值待校准
+- 多解机制：`requires.trust` 让"谈崩的人签不了字"，天花板随信任下降；天花板 < 0.40 时 **refer 合格 / agreement 不合格**
+- `src/game/report.py`：复盘报告（四维对照、Top3 失误、"换成…"、未触碰诉求、过程画像），纯本地生成
+- `src/game/rag.py` + `src/laws/laws.json`：8 条法条要点（人民调解法 5 / 民法典 2 / 治安管理处罚法 1），按 id 可溯源，检索不到返回空
+- 案子补到 4 个：案 02 楼下的狗、案 03 掉下来的花盆、案 04 四万二的工钱（3 方）
+- 前端：方案区（四维单选）、提交/转办两个出口、复盘弹层（复制文本 / 打印 PDF / 再练一次）、侧栏法条卡
+- 服务端：`/api/submit`、`/api/report/<sid>`、`/api/audit/<sid>`、`/api/laws`
+- 交付材料：`docs/调解台-一页PPT.pptx`（7 模块，数字取自 ledger）、`docs/答辩脚本.md`、`docs/部署说明.md`、`docs/提交表.md`、`deploy/*`
+- 接入真实密钥（DeepSeek deepseek-chat，约 1.2s/轮）；密钥只写 `src/config.local.json`，该文件在 .gitignore 里
+
+**为什么这么做**
+- 判定与对话彻底分开：`evaluate(plan, ctx, mode)` 的入参里**没有一句话**，模型无法影响结论
+- 天花板这个概念是整个作品的核心：它把"谈崩了还硬凑协议"从"高分"变成"不合格"，让"破裂"成为合格答案
+- 报告数字只搬 `result`，不二次计算；`test_judge` 断言报告与判定逐位一致
+
+**卡在哪 / 怎么解的**
+- 置信度永远过不了线（所有案子都判 need_more）：一开始用 softmax 后的概率差当 margin，被温度压扁到 0.2。
+  → 改用**原始质量差**（0.45）算 margin，满分方案置信度 0.72
+- 覆盖率虚高：方案因信任不足不可用时，仍把它的 `satisfies` 计进覆盖率
+  → 加 `if ok:` 才计入；"两头得罪"场景覆盖率从 0.85 掉到 0.22，和直觉一致
+- 关键证据没处可拿（f_audio / f_notice 没有任何点位挂着）→ 满分方案永远判"待补"
+  → 把两条事实分别挂到茶几、鞋柜，门后挂备案回执；报警记录改为开局已知
+- `case.json` 是服务启动时载入的，改完不重启就一直用旧数据（白排查半天）→ 写进 LOG 当规矩
+- Python 里写 JSON 反复被中文半角引号坑（`"再忍两天"`），一晚上踩三次 → 案子数据一律用 JSON 文件直接写，中文引号统一用「」
+- PPT 排版不能靠猜：用 LibreOffice 无头渲染成 PNG 再看，比肉眼读 pptx 靠谱
+
+**改动文件**
+- 新建：`src/judge/{__init__,kernel,mediation}.py`、`src/game/report.py`、`src/game/rag.py`、`src/laws/laws.json`、`src/cases/case_0{2,3,4}_*/case.json`、`tools/{test_judge,test_laws,make_ppt}.py`、`docs/{答辩脚本,部署说明,提交表}.md`、`docs/调解台-一页PPT.pptx`、`deploy/*`
+- 改写：`src/game/{__init__,dialogue}.py`、`src/server.py`、`src/web/{index.html,app.js,app.css}`、`tools/{run_all,ui_probe}.py`
+
+**验收数据**
+- `python tools/run_all.py --record` → **5 套 / 77 项断言全绿**（smoke 10 · art 9 · judge 28 · laws 16 · llm 14），ledger `all_ok: true`
+- 端到端（真实模型）：看现场取证 → 分别谈 4 轮 → 提交 → 复盘「调解达成 · 合格」，覆盖率 1.00、置信度 0.77
+- 八种判定场景逐条走通：满分/无证据/没分别谈/只保工期/硬凑/转办/过早转办/空方案
+
+**下一步**
+- 云端部署（按要求本轮不做）；做一个选案页，让 4 个案子在界面上可选；补 5 类纠纷；录兜底演示视频

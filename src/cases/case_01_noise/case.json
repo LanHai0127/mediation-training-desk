@@ -5,14 +5,18 @@
     "subtitle": "夜间装修噪声 · 相邻关系",
     "difficulty": "简单 · 2 名当事人",
     "playtime": "15~20 分钟",
-    "brief": "夜里九点四十，302 的住户打 110：楼上 402 的电钻从晚饭后没停过。她今晚要上夜班，明天一早还要接着上。"
+    "brief": "夜里九点四十，302 的住户打 110：楼上 402 的电钻从晚饭后没停过。她今晚要上夜班，明天一早还要接着上。",
+    "structure": "先分别谈（信任过线才有可谈的方案），再面对面组合协议"
   },
   "alarm": {
     "time": "11 月 2 日 21:38",
     "source": "110 报警 · 城西派出所（虚构）",
     "text": "报警人周某称：楼上 402 住户持续装修，电钻声、砸墙声从 18 时起未停，多次上门沟通无人应答。要求民警到场处理。"
   },
-  "partyOrder": ["p_a", "p_b"],
+  "partyOrder": [
+    "p_a",
+    "p_b"
+  ],
   "parties": {
     "p_a": {
       "name": "周敏",
@@ -20,12 +24,32 @@
       "job": "医院夜班护士",
       "age": 34,
       "baseline": "紧绷、语速快、一开口就带着委屈",
-      "triggers": ["矫情", "小题大做", "忍一忍", "不就几天"],
+      "triggers": [
+        "矫情",
+        "小题大做",
+        "忍一忍",
+        "不就几天"
+      ],
       "hidden": "她其实不想把事闹到法院，也怕邻居说她难相处；真正怕的是下夜班回来睡不了觉，白天补不上。",
       "needs": [
-        { "id": "n1", "text": "晚上八点后不要再有电钻声", "weight": 0.45, "hidden": false },
-        { "id": "n2", "text": "对方当面承认影响了她休息", "weight": 0.3, "hidden": false },
-        { "id": "n3", "text": "不要被邻居当成爱告状的人", "weight": 0.25, "hidden": true }
+        {
+          "id": "n1",
+          "text": "晚上八点后不要再有电钻声",
+          "weight": 0.45,
+          "hidden": false
+        },
+        {
+          "id": "n2",
+          "text": "对方当面承认影响了她休息",
+          "weight": 0.3,
+          "hidden": false
+        },
+        {
+          "id": "n3",
+          "text": "不要被邻居当成爱告状的人",
+          "weight": 0.25,
+          "hidden": true
+        }
       ],
       "fallback": {
         "empathy": [
@@ -66,12 +90,32 @@
       "job": "个体装修队包工头（自己家也自己装）",
       "age": 41,
       "baseline": "不耐烦、觉得被针对、一上来先讲工期",
-      "triggers": ["罚款", "停你工", "投诉", "举报"],
+      "triggers": [
+        "罚款",
+        "停你工",
+        "投诉",
+        "举报"
+      ],
       "hidden": "他婚期定在 12 月 8 日，房子装不完就得推迟；请的工人按天算钱，停一天亏一天。",
       "needs": [
-        { "id": "n4", "text": "工期不被无限期拖住", "weight": 0.4, "hidden": false },
-        { "id": "n5", "text": "不要被处罚、不要留记录", "weight": 0.35, "hidden": false },
-        { "id": "n6", "text": "在邻居面前不失面子（先被投诉，觉得丢人）", "weight": 0.25, "hidden": true }
+        {
+          "id": "n4",
+          "text": "工期不被无限期拖住",
+          "weight": 0.4,
+          "hidden": false
+        },
+        {
+          "id": "n5",
+          "text": "不要被处罚、不要留记录",
+          "weight": 0.35,
+          "hidden": false
+        },
+        {
+          "id": "n6",
+          "text": "在邻居面前不失面子（先被投诉，觉得丢人）",
+          "weight": 0.25,
+          "hidden": true
+        }
       ],
       "fallback": {
         "empathy": [
@@ -108,12 +152,36 @@
     }
   },
   "facts": [
-    { "id": "f_alarm", "title": "110 报警记录", "text": "21:38 接到报警，报警人周某（302）称楼上持续装修噪声，要求民警到场。" },
-    { "id": "f_audio", "title": "手机录音 1 分 12 秒", "text": "录音里有连续电钻声与一次重物落地声；录音时间 20:41—20:43。" },
-    { "id": "f_notice", "title": "物业告知书（复印件）", "text": "10 月 30 日物业已就噪声问题向 402 张贴告知书，未见整改回复。" },
-    { "id": "f_filing", "title": "装修备案登记", "text": "402 于 10 月 20 日在物业办理装修登记，未约定具体施工时段。" },
-    { "id": "f_wall_noise", "title": "现场听感", "text": "站在 302 客厅，能清楚听到楼上电钻声，间隔约十几秒一阵。" },
-    { "id": "f_wedding", "title": "婚期", "text": "王建国提到房子 12 月 8 日要办事，工期紧。这条是他自己说的，没有书面凭证。" }
+    {
+      "id": "f_alarm",
+      "title": "110 报警记录",
+      "text": "21:38 接到报警，报警人周某（302）称楼上持续装修噪声，要求民警到场。"
+    },
+    {
+      "id": "f_audio",
+      "title": "手机录音 1 分 12 秒",
+      "text": "录音里有连续电钻声与一次重物落地声；录音时间 20:41—20:43。"
+    },
+    {
+      "id": "f_notice",
+      "title": "物业告知书（复印件）",
+      "text": "10 月 30 日物业已就噪声问题向 402 张贴告知书，未见整改回复。"
+    },
+    {
+      "id": "f_filing",
+      "title": "装修备案登记",
+      "text": "402 于 10 月 20 日在物业办理装修登记，未约定具体施工时段。"
+    },
+    {
+      "id": "f_wall_noise",
+      "title": "现场听感",
+      "text": "站在 302 客厅，能清楚听到楼上电钻声，间隔约十几秒一阵。"
+    },
+    {
+      "id": "f_wedding",
+      "title": "婚期",
+      "text": "王建国提到房子 12 月 8 日要办事，工期紧。这条是他自己说的，没有书面凭证。"
+    }
   ],
   "scenes": [
     {
@@ -121,30 +189,130 @@
       "name": "302 室 · 报警人家中",
       "setting": "room",
       "ground": "wood",
-      "spawn": { "x": 420, "y": 770 },
+      "spawn": {
+        "x": 420,
+        "y": 770
+      },
       "spots": [
-        { "id": "s_window", "kind": "window", "label": "阳台窗", "x": 150, "y": 110, "w": 90, "h": 16, "passable": true,
-          "look": "窗户关得严实，声音还是从楼板传下来的。", "fact": "f_wall_noise" },
-        { "id": "s_radiator", "kind": "radiator", "label": "暖气片", "x": 300, "y": 110, "w": 80, "h": 18, "passable": true,
-          "look": "老式暖气片，靠墙一排。屋里有点闷。" },
-        { "id": "s_clock", "kind": "clock_wall", "label": "挂钟", "x": 900, "y": 108, "w": 40, "h": 14, "passable": true,
-          "look": "指针指向 21:47。报警到现在已经过了九分钟。" },
-        { "id": "s_door", "kind": "door", "label": "出门 · 去楼道", "x": 1270, "y": 150, "w": 70, "h": 30, "passable": true,
-          "look": "门开着，楼道里更响。", "goto": "yard" },
-        { "id": "s_sofa", "kind": "sofa", "label": "沙发", "x": 220, "y": 560, "w": 130, "h": 52,
-          "look": "沙发上摊着一条薄毯，枕头上还有压痕——她刚躺下就被吵醒了。" },
-        { "id": "s_table", "kind": "tea_table", "label": "茶几", "x": 400, "y": 610, "w": 90, "h": 50,
-          "look": "茶几上放着耳塞盒，已经用空了一半。" },
-        { "id": "s_tv", "kind": "tv", "label": "电视", "x": 760, "y": 190, "w": 100, "h": 34,
-          "look": "电视关着，屏幕上落了一层灰。" },
-        { "id": "s_shoe", "kind": "shoe_cabinet", "label": "鞋柜", "x": 60, "y": 260, "w": 80, "h": 40,
-          "look": "鞋柜边放着一双平底护士鞋，鞋跟磨得厉害。" },
-        { "id": "s_dining", "kind": "dining_table", "label": "餐桌", "x": 1010, "y": 560, "w": 110, "h": 60,
-          "look": "桌上一个没吃完的盒饭，已经凉了。" },
-        { "id": "s_toys", "kind": "toys", "label": "积木", "x": 660, "y": 770, "w": 40, "h": 30,
-          "look": "地上散着几块积木。她说孩子这周在姥姥家，不然更睡不成。" },
-        { "id": "s_plant", "kind": "plant", "label": "绿萝", "x": 180, "y": 760, "w": 40, "h": 30,
-          "look": "窗边一盆绿萝，叶子有点蔫。" }
+        {
+          "id": "s_window",
+          "kind": "window",
+          "label": "阳台窗",
+          "x": 150,
+          "y": 110,
+          "w": 90,
+          "h": 16,
+          "passable": true,
+          "look": "窗户关得严实，声音还是从楼板传下来的。",
+          "fact": "f_wall_noise"
+        },
+        {
+          "id": "s_radiator",
+          "kind": "radiator",
+          "label": "暖气片",
+          "x": 300,
+          "y": 110,
+          "w": 80,
+          "h": 18,
+          "passable": true,
+          "look": "老式暖气片，靠墙一排。屋里有点闷。"
+        },
+        {
+          "id": "s_clock",
+          "kind": "clock_wall",
+          "label": "挂钟",
+          "x": 900,
+          "y": 108,
+          "w": 40,
+          "h": 14,
+          "passable": true,
+          "look": "指针指向 21:47。报警到现在已经过了九分钟。"
+        },
+        {
+          "id": "s_door",
+          "kind": "door",
+          "label": "出门 · 去楼道",
+          "x": 1270,
+          "y": 150,
+          "w": 70,
+          "h": 30,
+          "passable": true,
+          "look": "门后贴着物业的装修备案回执，上面只写了开工日期，没写施工时段。",
+          "goto": "yard",
+          "fact": "f_filing"
+        },
+        {
+          "id": "s_sofa",
+          "kind": "sofa",
+          "label": "沙发",
+          "x": 220,
+          "y": 560,
+          "w": 130,
+          "h": 52,
+          "look": "沙发上摊着一条薄毯，枕头上还有压痕——她刚躺下就被吵醒了。"
+        },
+        {
+          "id": "s_table",
+          "kind": "tea_table",
+          "label": "茶几",
+          "x": 400,
+          "y": 610,
+          "w": 90,
+          "h": 50,
+          "look": "茶几上放着耳塞盒，旁边是她的手机，录音还停在 1 分 12 秒那一屏。",
+          "fact": "f_audio"
+        },
+        {
+          "id": "s_tv",
+          "kind": "tv",
+          "label": "电视",
+          "x": 760,
+          "y": 190,
+          "w": 100,
+          "h": 34,
+          "look": "电视关着，屏幕上落了一层灰。"
+        },
+        {
+          "id": "s_shoe",
+          "kind": "shoe_cabinet",
+          "label": "鞋柜",
+          "x": 60,
+          "y": 260,
+          "w": 80,
+          "h": 40,
+          "look": "鞋柜上压着一张物业告知书，日期 10 月 30 日，签收栏是空的。",
+          "fact": "f_notice"
+        },
+        {
+          "id": "s_dining",
+          "kind": "dining_table",
+          "label": "餐桌",
+          "x": 1010,
+          "y": 560,
+          "w": 110,
+          "h": 60,
+          "look": "桌上一个没吃完的盒饭，已经凉了。"
+        },
+        {
+          "id": "s_toys",
+          "kind": "toys",
+          "label": "积木",
+          "x": 660,
+          "y": 770,
+          "w": 40,
+          "h": 30,
+          "look": "地上散着几块积木。她说孩子这周在姥姥家，不然更睡不成。"
+        },
+        {
+          "id": "s_plant",
+          "kind": "plant",
+          "label": "绿萝",
+          "x": 180,
+          "y": 760,
+          "w": 40,
+          "h": 30,
+          "look": "窗边一盆绿萝，叶子有点蔫。"
+        }
       ]
     },
     {
@@ -152,26 +320,107 @@
       "name": "单元门外 · 院子里",
       "setting": "yard",
       "ground": "concrete",
-      "spawn": { "x": 700, "y": 760 },
+      "spawn": {
+        "x": 700,
+        "y": 760
+      },
       "spots": [
-        { "id": "s_unit_door", "kind": "door", "label": "回 302", "x": 700, "y": 150, "w": 80, "h": 30, "passable": true,
-          "look": "单元门里头就是楼梯间。", "goto": "home" },
-        { "id": "s_steps", "kind": "steps", "label": "台阶", "x": 700, "y": 250, "w": 90, "h": 30, "passable": true,
-          "look": "三级台阶，边上堆着两袋装修垃圾。" },
-        { "id": "s_wall", "kind": "wall_yard", "label": "院墙", "x": 300, "y": 170, "w": 140, "h": 60,
-          "look": "红砖院墙，墙根有渗水的痕迹。" },
-        { "id": "s_vat", "kind": "water_vat", "label": "水缸", "x": 990, "y": 300, "w": 50, "h": 40,
-          "look": "一口老水缸，盖着木板。" },
-        { "id": "s_line", "kind": "clothesline", "label": "晾衣绳", "x": 1150, "y": 220, "w": 110, "h": 30, "passable": true,
-          "look": "晾着几件工服，还滴着水——402 的工人刚收工。" },
-        { "id": "s_bike", "kind": "e_bike", "label": "电动车", "x": 480, "y": 520, "w": 60, "h": 40,
-          "look": "一辆电动车横在通道上，车筐里有水泥钉的包装袋。" },
-        { "id": "s_tree", "kind": "tree", "label": "梧桐", "x": 120, "y": 420, "w": 70, "h": 40,
-          "look": "梧桐树，叶子落了一地。" },
-        { "id": "s_manhole", "kind": "manhole", "label": "井盖", "x": 820, "y": 660, "w": 46, "h": 20, "passable": true,
-          "look": "井盖边上有一小摊水。" },
-        { "id": "s_pole", "kind": "pole", "label": "电线杆", "x": 1290, "y": 380, "w": 20, "h": 16, "passable": true,
-          "look": "杆上贴着几张招租小广告。" }
+        {
+          "id": "s_unit_door",
+          "kind": "door",
+          "label": "回 302",
+          "x": 700,
+          "y": 150,
+          "w": 80,
+          "h": 30,
+          "passable": true,
+          "look": "单元门里头就是楼梯间。",
+          "goto": "home"
+        },
+        {
+          "id": "s_steps",
+          "kind": "steps",
+          "label": "台阶",
+          "x": 700,
+          "y": 250,
+          "w": 90,
+          "h": 30,
+          "passable": true,
+          "look": "三级台阶，边上堆着两袋装修垃圾。"
+        },
+        {
+          "id": "s_wall",
+          "kind": "wall_yard",
+          "label": "院墙",
+          "x": 300,
+          "y": 170,
+          "w": 140,
+          "h": 60,
+          "look": "红砖院墙，墙根有渗水的痕迹。"
+        },
+        {
+          "id": "s_vat",
+          "kind": "water_vat",
+          "label": "水缸",
+          "x": 990,
+          "y": 300,
+          "w": 50,
+          "h": 40,
+          "look": "一口老水缸，盖着木板。"
+        },
+        {
+          "id": "s_line",
+          "kind": "clothesline",
+          "label": "晾衣绳",
+          "x": 1150,
+          "y": 220,
+          "w": 110,
+          "h": 30,
+          "passable": true,
+          "look": "晾着几件工服，还滴着水——402 的工人刚收工。"
+        },
+        {
+          "id": "s_bike",
+          "kind": "e_bike",
+          "label": "电动车",
+          "x": 480,
+          "y": 520,
+          "w": 60,
+          "h": 40,
+          "look": "一辆电动车横在通道上，车筐里有水泥钉的包装袋。"
+        },
+        {
+          "id": "s_tree",
+          "kind": "tree",
+          "label": "梧桐",
+          "x": 120,
+          "y": 420,
+          "w": 70,
+          "h": 40,
+          "look": "梧桐树，叶子落了一地。"
+        },
+        {
+          "id": "s_manhole",
+          "kind": "manhole",
+          "label": "井盖",
+          "x": 820,
+          "y": 660,
+          "w": 46,
+          "h": 20,
+          "passable": true,
+          "look": "井盖边上有一小摊水。"
+        },
+        {
+          "id": "s_pole",
+          "kind": "pole",
+          "label": "电线杆",
+          "x": 1290,
+          "y": 380,
+          "w": 20,
+          "h": 16,
+          "passable": true,
+          "look": "杆上贴着几张招租小广告。"
+        }
       ]
     },
     {
@@ -179,33 +428,350 @@
       "name": "派出所 · 调解室",
       "setting": "room",
       "ground": "tile",
-      "spawn": { "x": 700, "y": 780 },
+      "spawn": {
+        "x": 700,
+        "y": 780
+      },
       "spots": [
-        { "id": "s_mtable", "kind": "table_mediation", "label": "调解桌", "x": 640, "y": 470, "w": 100, "h": 40,
-          "look": "桌面上摆着两张纸：一张调解申请书，一张空白协议书。" },
-        { "id": "s_bench_l", "kind": "bench_long", "label": "长椅（左侧）", "x": 440, "y": 480, "w": 88, "h": 34,
-          "look": "周敏坐过的位置，椅面上留着一个浅浅的包印。" },
-        { "id": "s_bench_r", "kind": "bench_long", "label": "长椅（右侧）", "x": 880, "y": 480, "w": 88, "h": 34,
-          "look": "王建国一直没坐下，站着。" },
-        { "id": "s_gavel", "kind": "gavel_stand", "label": "调解席木托", "x": 660, "y": 430, "w": 36, "h": 14, "passable": true,
-          "look": "木托上放着一枚木槌。这里不是法庭，摆它是为了让双方知道「现在开始正式谈」。" },
-        { "id": "s_cabinet", "kind": "cabinet", "label": "档案柜", "x": 140, "y": 190, "w": 70, "h": 40,
-          "look": "柜里是按年份码好的调解卷宗。翻不到任何真实案件，全是演练用的虚构卷。" },
-        { "id": "s_water", "kind": "water_cooler", "label": "饮水机", "x": 1270, "y": 210, "w": 44, "h": 30,
-          "look": "桶里水不多了。给双方各倒一杯，往往比开口劝更管用。" },
-        { "id": "s_cam", "kind": "camera_dome", "label": "监控探头", "x": 1010, "y": 110, "w": 28, "h": 12, "passable": true,
-          "look": "调解室按规定全程录音录像——这一点要在开始前告诉双方。" },
-        { "id": "s_board", "kind": "board_notice", "label": "公示牌", "x": 300, "y": 150, "w": 72, "h": 24, "passable": true,
-          "look": "牌子上是调解流程与当事人权利义务，字很小。" },
-        { "id": "s_desk", "kind": "desk_office", "label": "记录席", "x": 1120, "y": 440, "w": 80, "h": 40,
-          "look": "记录席上摊着笔录纸，笔没盖帽。" },
-        { "id": "s_ledger", "kind": "ledger_stack", "label": "台账", "x": 1100, "y": 420, "w": 40, "h": 14, "passable": true,
-          "look": "一本调解台账，最近一页记着上一起噪音纠纷的处理结果。" },
-        { "id": "s_vboard", "kind": "board_village", "label": "村务公开栏", "x": 760, "y": 150, "w": 80, "h": 26, "passable": true,
-          "look": "栏里贴着社区民警联系方式与「邻里公约」倡议书。" },
-        { "id": "s_plant2", "kind": "plant", "label": "绿植", "x": 560, "y": 180, "w": 40, "h": 30,
-          "look": "一盆养得不错的绿萝，屋里显得没那么冷。" }
+        {
+          "id": "s_mtable",
+          "kind": "table_mediation",
+          "label": "调解桌",
+          "x": 640,
+          "y": 470,
+          "w": 100,
+          "h": 40,
+          "look": "桌面上摆着两张纸：一张调解申请书，一张空白协议书。"
+        },
+        {
+          "id": "s_bench_l",
+          "kind": "bench_long",
+          "label": "长椅（左侧）",
+          "x": 440,
+          "y": 480,
+          "w": 88,
+          "h": 34,
+          "look": "周敏坐过的位置，椅面上留着一个浅浅的包印。"
+        },
+        {
+          "id": "s_bench_r",
+          "kind": "bench_long",
+          "label": "长椅（右侧）",
+          "x": 880,
+          "y": 480,
+          "w": 88,
+          "h": 34,
+          "look": "王建国一直没坐下，站着。"
+        },
+        {
+          "id": "s_gavel",
+          "kind": "gavel_stand",
+          "label": "调解席木托",
+          "x": 660,
+          "y": 430,
+          "w": 36,
+          "h": 14,
+          "passable": true,
+          "look": "木托上放着一枚木槌。这里不是法庭，摆它是为了让双方知道「现在开始正式谈」。"
+        },
+        {
+          "id": "s_cabinet",
+          "kind": "cabinet",
+          "label": "档案柜",
+          "x": 140,
+          "y": 190,
+          "w": 70,
+          "h": 40,
+          "look": "柜里是按年份码好的调解卷宗。翻不到任何真实案件，全是演练用的虚构卷。"
+        },
+        {
+          "id": "s_water",
+          "kind": "water_cooler",
+          "label": "饮水机",
+          "x": 1270,
+          "y": 210,
+          "w": 44,
+          "h": 30,
+          "look": "桶里水不多了。给双方各倒一杯，往往比开口劝更管用。"
+        },
+        {
+          "id": "s_cam",
+          "kind": "camera_dome",
+          "label": "监控探头",
+          "x": 1010,
+          "y": 110,
+          "w": 28,
+          "h": 12,
+          "passable": true,
+          "look": "调解室按规定全程录音录像——这一点要在开始前告诉双方。"
+        },
+        {
+          "id": "s_board",
+          "kind": "board_notice",
+          "label": "公示牌",
+          "x": 300,
+          "y": 150,
+          "w": 72,
+          "h": 24,
+          "passable": true,
+          "look": "牌子上是调解流程与当事人权利义务，字很小。"
+        },
+        {
+          "id": "s_desk",
+          "kind": "desk_office",
+          "label": "记录席",
+          "x": 1120,
+          "y": 440,
+          "w": 80,
+          "h": 40,
+          "look": "记录席上摊着笔录纸，笔没盖帽。"
+        },
+        {
+          "id": "s_ledger",
+          "kind": "ledger_stack",
+          "label": "台账",
+          "x": 1100,
+          "y": 420,
+          "w": 40,
+          "h": 14,
+          "passable": true,
+          "look": "一本调解台账，最近一页记着上一起噪音纠纷的处理结果。"
+        },
+        {
+          "id": "s_vboard",
+          "kind": "board_village",
+          "label": "村务公开栏",
+          "x": 760,
+          "y": 150,
+          "w": 80,
+          "h": 26,
+          "passable": true,
+          "look": "栏里贴着社区民警联系方式与「邻里公约」倡议书。"
+        },
+        {
+          "id": "s_plant2",
+          "kind": "plant",
+          "label": "绿植",
+          "x": 560,
+          "y": 180,
+          "w": 40,
+          "h": 30,
+          "look": "一盆养得不错的绿萝，屋里显得没那么冷。"
+        }
       ]
     }
-  ]
+  ],
+  "needs": [
+    {
+      "id": "n1",
+      "text": "晚上八点后不要再有电钻声",
+      "weight": 0.45
+    },
+    {
+      "id": "n2",
+      "text": "对方当面承认影响了她休息",
+      "weight": 0.3
+    },
+    {
+      "id": "n3",
+      "text": "不要被邻居当成爱告状的人",
+      "weight": 0.25
+    },
+    {
+      "id": "n4",
+      "text": "工期不被无限期拖住",
+      "weight": 0.4
+    },
+    {
+      "id": "n5",
+      "text": "不要被处罚、不要留记录",
+      "weight": 0.35
+    },
+    {
+      "id": "n6",
+      "text": "在邻居面前不失面子",
+      "weight": 0.25
+    }
+  ],
+  "dimensions": [
+    {
+      "id": "dim_claim",
+      "name": "诉求识别",
+      "ask": "她说的是「要个说法」，真正要的是「今晚能睡」。你的方案落在哪一个上？",
+      "options": [
+        {
+          "id": "o_sleep",
+          "label": "把「晚八点后停止一切有声作业」写成协议的第一条",
+          "quality": 1.0,
+          "satisfies": [
+            "n1"
+          ]
+        },
+        {
+          "id": "o_money",
+          "label": "要求对方赔偿三天没睡好的精神损失",
+          "quality": 0.15,
+          "satisfies": [],
+          "trap": true,
+          "note": "她从头到尾没提钱。开口就谈钱，等于把她的委屈换成了生意。"
+        },
+        {
+          "id": "o_promise",
+          "label": "让对方口头保证「以后注意」，不写具体时段",
+          "quality": 0.4,
+          "satisfies": [
+            "n2"
+          ],
+          "trap": true,
+          "note": "听着给了面子，实际上今晚回去还是响。"
+        }
+      ]
+    },
+    {
+      "id": "dim_bottom",
+      "name": "底线命中",
+      "ask": "周敏的底线是睡眠，王建国的底线是工期。两头都得碰到，才算真谈成。",
+      "options": [
+        {
+          "id": "o_both",
+          "label": "写清时段（晚八点后停）、写明王建国承认影响了她休息，同时确认白天可以正常施工、工期不受影响",
+          "quality": 1.0,
+          "satisfies": [
+            "n1",
+            "n4",
+            "n2"
+          ],
+          "requires": {
+            "trust": {
+              "p_b": 0.4
+            }
+          }
+        },
+        {
+          "id": "o_only_a",
+          "label": "只写周敏的时段要求，工期的顾虑不做任何回应",
+          "quality": 0.55,
+          "satisfies": [
+            "n1"
+          ]
+        },
+        {
+          "id": "o_only_b",
+          "label": "劝周敏「体谅一下人家办喜事」，把工期放在前面",
+          "quality": 0.25,
+          "satisfies": [
+            "n4"
+          ],
+          "trap": true,
+          "note": "这不是调解，是让她再忍一次。"
+        }
+      ]
+    },
+    {
+      "id": "dim_evidence",
+      "name": "证据支撑",
+      "ask": "协议里的事实部分，是靠录音、物业告知书撑着，还是靠「挺吵的」三个字？",
+      "options": [
+        {
+          "id": "o_facts",
+          "label": "把录音时间、物业告知书、现场听感写进事实部分",
+          "quality": 1.0,
+          "satisfies": [
+            "n1"
+          ],
+          "evidence": [
+            "f_audio",
+            "f_notice"
+          ]
+        },
+        {
+          "id": "o_words",
+          "label": "只写「报警人反映楼上很吵」",
+          "quality": 0.3,
+          "satisfies": []
+        },
+        {
+          "id": "o_test",
+          "label": "要求先做噪声检测，出结果再谈",
+          "quality": 0.45,
+          "satisfies": [],
+          "trap": true,
+          "note": "检测要几天。她今晚还是睡不着，事情会被拖成另一件事。"
+        }
+      ]
+    },
+    {
+      "id": "dim_face",
+      "name": "台阶给够",
+      "ask": "被投诉的人也要能抬头走出这间屋子，否则他签了也不会执行。",
+      "options": [
+        {
+          "id": "o_face_both",
+          "label": "单独跟王建国说「赶婚期不容易，夜里收工就没事了」，不当众点他；同时告诉周敏「不是你矫情」",
+          "quality": 1.0,
+          "satisfies": [
+            "n3",
+            "n5",
+            "n6"
+          ],
+          "requires": {
+            "trust": {
+              "p_a": 0.45,
+              "p_b": 0.4
+            }
+          }
+        },
+        {
+          "id": "o_public",
+          "label": "当着周敏的面指出王建国违规，让他当场认错",
+          "quality": 0.45,
+          "satisfies": [
+            "n2"
+          ],
+          "trap": true,
+          "note": "周敏的气出了，王建国的面子没了——后面执行全靠躲。"
+        },
+        {
+          "id": "o_none",
+          "label": "不谈面子，直接把条款念一遍让双方签字",
+          "quality": 0.2,
+          "satisfies": []
+        }
+      ]
+    }
+  ],
+  "endings": {
+    "reached": {
+      "label": "调解达成",
+      "text": "协议写清了时段与责任，双方都留了体面。"
+    },
+    "reached_weak": {
+      "label": "勉强达成",
+      "text": "签了字，但有一方的真实诉求没被覆盖，过几天大概率还会响。"
+    },
+    "need_more": {
+      "label": "还需要再谈",
+      "text": "有维度没触及，或关键事实没有证据支撑，现在下结论是赌。"
+    },
+    "no_separate": {
+      "label": "程序不合格",
+      "text": "没有分别谈话就面对面，最容易把人逼到墙角。"
+    },
+    "overpromised": {
+      "label": "越界承诺",
+      "text": "答应了做不到的事，后面收不了场。"
+    },
+    "early_giveup": {
+      "label": "过早转办",
+      "text": "还有可谈的余地就推出去，等于把矛盾原样退回。"
+    },
+    "forced_agreement": {
+      "label": "硬凑协议",
+      "text": "底线冲突没解决就凑出一份协议，签了也执行不了。"
+    },
+    "rupture_referred": {
+      "label": "依法告知并转办",
+      "text": "结构性冲突无法调和时，把路指清楚比硬劝更负责。"
+    }
+  }
 }

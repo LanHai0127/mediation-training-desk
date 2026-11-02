@@ -1,0 +1,21 @@
+[Unit]
+Description=Mediation Bench (training system)
+After=network.target
+
+[Service]
+Type=simple
+User=tiaojietai
+WorkingDirectory=/opt/tiaojietai/current/src
+Environment=TJ_PORT=8770
+EnvironmentFile=-/etc/tiaojietai/env
+ExecStart=/usr/bin/python3 server.py --host 127.0.0.1 --port 8770
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tiaojietai/current/src
+
+[Install]
+WantedBy=multi-user.target

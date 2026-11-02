@@ -40,6 +40,7 @@ class Dialogue:
         self.case = case
         self.client = client
         self.parties = case.get("parties") or {}
+        self.oversteps = 0          # 越界承诺累计次数，过程分要用（不参与任何单轮判定）
         self.facts = {f["id"]: f for f in (case.get("facts") or [])}
         self.state: dict[str, dict[str, Any]] = {}
         for pid in self.parties:
@@ -65,6 +66,9 @@ class Dialogue:
         st["lastText"] = text
         st["repeat"] = repeat
 
+        overstep = bool(OVERSTEP.search(text or ""))
+        if overstep:
+            self.oversteps += 1
         reply, used_llm = self._render(party_id, party, text, intent, channel, repeat)
 
         # 隐情只在"单独谈话 + 信任够"时吐一次，且只吐一次
@@ -80,7 +84,7 @@ class Dialogue:
             "intent": intent,
             "state": {"trust": round(st["trust"], 2), "mood": round(st["mood"], 2)},
             "reveal": reveal,
-            "overstep": bool(OVERSTEP.search(text or "")),
+            "overstep": overstep,
         }
 
     # ------------------------------------------------------------ 规则层

@@ -126,6 +126,7 @@ def main() -> int:
     ap.add_argument("--click", default="", help="模拟点击画布坐标：x,y")
     ap.add_argument("--read", default="", help="点击后读某个元素的 textContent（如 #hint）")
     ap.add_argument("--eval", dest="eval_js", default="", help="点击后求值一段 JS 并打印结果")
+    ap.add_argument("--eval-file", default="", help="从文件读 JS（避免命令行引号地狱）")
     ap.add_argument("--after", type=float, default=1.8, help="点击后等待秒数（等人走到位）")
     args = ap.parse_args()
 
@@ -193,9 +194,14 @@ def main() -> int:
             })
             print("读 %s → %s" % (args.read, r["result"]["value"]))
 
-        if args.eval_js:
-            r = cdp.call("Runtime.evaluate", {"expression": args.eval_js, "returnByValue": True})
+        js = args.eval_js
+        if args.eval_file:
+            js = Path(args.eval_file).read_text(encoding="utf-8")
+        if js:
+            r = cdp.call("Runtime.evaluate", {"expression": js, "returnByValue": True,
+                                              "awaitPromise": True})
             print("eval → %s" % json.dumps(r["result"].get("value"), ensure_ascii=False))
+            time.sleep(3.0)      # 等异步提交与弹层渲染完
 
         if args.shot:
             shot = cdp.call("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False})

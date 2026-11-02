@@ -400,6 +400,11 @@
     door: 1, radiator: 1
   };
   var WALL_ART = 0.62;
+  // 挂墙件的"标称高度"（世界单位）：缩放要收着用，不然一块 136 高的公开栏会顶出画布顶部。
+  var WALL_HEIGHT = {
+    window: 92, clock_wall: 140, camera_dome: 132,
+    board_notice: 108, board_village: 136, door: 96, radiator: 50
+  };
 
   // ============================================================ A* 寻路
   var COLS = Math.ceil(WORLD.w / TILE);
@@ -784,9 +789,17 @@
       ctx.fillText("?", p.sx, p.sy - 16);
       return;
     }
+    var scale = this.artScale();
+    if (wall) {
+      scale *= WALL_ART;
+      // 墙高是硬约束：墙只有 HORIZON 那么高，物件再高就会被画布切掉一截
+      var room = this.h * HORIZON - 10;
+      var cap = room / (WALL_HEIGHT[s.kind] || 100);
+      if (scale > cap) { scale = cap; }
+    }
     ctx.save();
     ctx.translate(p.sx, p.sy);
-    fn(ctx, p.k * (wall ? this.artScale() * WALL_ART : this.artScale()));
+    fn(ctx, p.k * scale);
     ctx.restore();
 
     if (this.hover === s.id || this.nearSpot === s.id) {

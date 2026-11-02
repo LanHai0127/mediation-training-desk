@@ -40,7 +40,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from auth import Auth  # noqa: E402
-from game import LLMClient, Session, discover_cases, public_case  # noqa: E402
+from game import LLMClient, Session, discover_cases, public_case, rag, report_text  # noqa: E402
 
 WEB_DIR = ROOT / "web"
 LOGIN_PAGE = WEB_DIR / "login.html"
@@ -78,6 +78,7 @@ CONFIG = load_config()
 AUTH = Auth(ROOT)          # 没有 auth.local.json 时不拦（本地裸跑 / 自测）
 LLM = LLMClient.from_project(ROOT, CONFIG)
 CASES = {c["id"]: c for c in discover_cases(ROOT / "cases")}
+LAWS_META = rag.load(ROOT)
 SESSIONS: dict[str, Session] = {}          # 训练会话（内存即可：演练不需要跨重启续局）
 BUILD_GIT = git_hash()
 SERVER_CFG = CONFIG.get("server") or {}
@@ -306,6 +307,29 @@ class Handler(BaseHTTPRequestHandler):
                 if cid not in CASES:
                     return self._json({"error": "case not found"}, 404)
                 return self._json(public_case(CASES[cid]))
+            if path.startswith("/api/report/"):
+                # 复盘报告：本地生成，不调模型；同一份数据还能导出纯文本。
+                sid = path[len("/api/report/"):]
+                s_ = self._session_of(sid)
+                if not s_ or not s_.report:
+                    return self._json({"error": "还没有可复盘的判定"}, 404)
+                return self._json({"report": s_.report, "text": report_text(s_.report),
+                                   "audit": s_.audit_lines()})
+            if path.startswith("/api/audit/"):
+                s_ = self._session_of(path[len("/api/audit/"):])
+                if not s_:
+                    return self._json({"error": "session not found"}, 404)
+                return self._json({"audit": s_.audit_lines()})
+            if path == "/api/laws":
+                # 法条速查：只给"要点 + 条号"，能溯源；不参与判定。
+                cid = query.get("case", "")
+                q = query.get("q", "")
+                if cid in CASES:
+                    c = CASES[cid]
+                    q = q or " ".join([c.get("title", ""), c.get("meta", {}).get("subtitle", ""),
+                                       c.get("meta", {}).get("brief", "")])
+                hits = rag.search(q, int(query.get("n") or 3)) if q else []
+                return self._json({"query": q, "articles": hits, "meta": rag.meta()})
             if path == "/api/llm/status":
                 return self._json({"llm": LLM.status(), "offlineScript": True})
             if path == "/api/health":
@@ -317,6 +341,7 @@ class Handler(BaseHTTPRequestHandler):
                         "build": {"ts": BUILD_TS, "git": BUILD_GIT},
                         "cases": list(CASES),
                         "llm": LLM.enabled,
+                        "laws": LAWS_META.get("count", 0),
                         "llmLimits": RATE.snapshot(),
                         "auth": {
                             "enabled": AUTH.enabled,
@@ -354,6 +379,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._scene(data)
             if path == "/api/dialogue":
                 return self._dialogue(data)
+            if path == "/api/submit":
+                return self._submit(data)
             return self._json({"error": "not found"}, 404)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
@@ -465,6 +492,18 @@ class Handler(BaseHTTPRequestHandler):
                                else (limited or ""))
         if pid not in [t["partyId"] for t in s.talked]:
             s.talked.append({"partyId": pid, "channel": channel})
+        res["view"] = s.view()
+        self._json(res)
+
+    def _submit(self, data: dict[str, Any]) -> None:
+        """提交方案 / 依法转办。判定只吃 plan 与客观状态，不吃对话文本。"""
+        s = self._session_of(str(data.get("sessionId") or ""))
+        if not s:
+            return self._json({"error": "session not found"}, 404)
+        plan = data.get("plan") if isinstance(data.get("plan"), dict) else {}
+        res = s.submit({str(k): str(v) for k, v in plan.items()},
+                       str(data.get("mode") or "agreement"))
+        res["report"] = s.report
         res["view"] = s.view()
         self._json(res)
 

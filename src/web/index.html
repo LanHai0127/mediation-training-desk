@@ -36,13 +36,28 @@
         <h2 id="caseTitle">正在载入案子…</h2>
         <p id="caseBrief"></p>
       </div>
-      <div class="scene-tabs" id="sceneTabs"></div>
+      <div class="head-right">
+        <select id="casePick" title="换一个案子"></select>
+        <div class="scene-tabs" id="sceneTabs"></div>
+      </div>
     </div>
 
     <div class="stage" id="stage">
       <canvas id="scene"></canvas>
       <div class="hint" id="hint">点地面走过去 · 点物件查看</div>
     </div>
+
+    <section class="plan-card" id="planCard">
+      <div class="plan-head">
+        <h3>调解方案</h3>
+        <span>四个维度，各选一条。选完再决定：出协议，还是依法转办。</span>
+      </div>
+      <div class="plan-dims" id="planDims"></div>
+      <div class="plan-actions">
+        <button class="btn primary" id="btnAgree">出具调解协议书</button>
+        <button class="btn ghost" id="btnRefer">依法告知 · 转其他途径</button>
+      </div>
+    </section>
 
     <div class="dialog-dock" id="dock">
       <div class="dock-head">
@@ -82,12 +97,34 @@
       </ul>
     </div>
 
+    <div class="card">
+      <h3>可引用的条文 <span class="count" id="lawCount">0</span></h3>
+      <ul class="facts laws" id="lawList">
+        <li class="empty">正在匹配本案相关条文…</li>
+      </ul>
+    </div>
+
     <div class="card note">
       <h3>这一步练什么</h3>
       <p id="drill">先在现场把"影响"变成能说出时间、次数、来源的事实；再决定要不要把两人叫到一起。</p>
     </div>
   </aside>
 </main>
+
+<div class="modal" id="reportModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="repTitle">训练复盘</h2>
+      <button class="x" id="btnClose" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body" id="reportBody"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="btnCopy">复制文本</button>
+      <button class="btn ghost" id="btnPrint">打印 / 另存 PDF</button>
+      <button class="btn primary" id="btnAgain">再练一次</button>
+    </div>
+  </div>
+</div>
 
 <footer class="foot">
   <p>本系统为教学演练工具，全部案件、姓名、地址、电话均为虚构。不替代真实执法决策，不出具任何具有法律效力的文书。</p>
