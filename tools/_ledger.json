@@ -1,44 +1,65 @@
 {
-  "updated": "2026-11-02T20:19:49",
+  "updated": "2026-11-02T20:39:31",
   "note": "由 tools/run_all.py --record 生成；文档里的断言数以这里为准",
   "suites": {
     "test_smoke": {
       "total": 10,
       "failed": 0,
       "exit": 0,
-      "seconds": 0.8,
-      "ok": true
+      "seconds": 0.9,
+      "ok": true,
+      "skipped": false
     },
     "test_art": {
       "total": 9,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.3,
-      "ok": true
+      "seconds": 1.5,
+      "ok": true,
+      "skipped": false
     },
     "test_judge": {
-      "total": 28,
+      "total": 29,
       "failed": 0,
       "exit": 0,
-      "seconds": 0.8,
-      "ok": true
+      "seconds": 1.8,
+      "ok": true,
+      "skipped": false
     },
     "test_laws": {
       "total": 16,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.5,
-      "ok": true
+      "seconds": 1.7,
+      "ok": true,
+      "skipped": false
     },
     "test_llm": {
       "total": 14,
       "failed": 0,
       "exit": 0,
-      "seconds": 0.9,
-      "ok": true
+      "seconds": 1.9,
+      "ok": true,
+      "skipped": false
+    },
+    "test_api": {
+      "total": 20,
+      "failed": 0,
+      "exit": 0,
+      "seconds": 1.9,
+      "ok": true,
+      "skipped": false
+    },
+    "test_ui": {
+      "total": 15,
+      "failed": 0,
+      "exit": 0,
+      "seconds": 18.6,
+      "ok": true,
+      "skipped": false
     }
   },
   "tools": {},
-  "total": 77,
+  "total": 113,
   "all_ok": true
 }

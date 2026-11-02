@@ -23,7 +23,7 @@
   </div>
   <div class="top-right">
     <span class="pill" id="llmPill">模型：检测中…</span>
-    <span class="pill ghost" id="stagePill">S2 · 场景层</span>
+    <span class="pill ghost" id="stagePill">v0.3 · 演示版</span>
   </div>
 </header>
 
@@ -45,19 +45,8 @@
     <div class="stage" id="stage">
       <canvas id="scene"></canvas>
       <div class="hint" id="hint">点地面走过去 · 点物件查看</div>
+      <div class="stage-skeleton" id="skeleton"><span>正在布置现场…</span></div>
     </div>
-
-    <section class="plan-card" id="planCard">
-      <div class="plan-head">
-        <h3>调解方案</h3>
-        <span>四个维度，各选一条。选完再决定：出协议，还是依法转办。</span>
-      </div>
-      <div class="plan-dims" id="planDims"></div>
-      <div class="plan-actions">
-        <button class="btn primary" id="btnAgree">出具调解协议书</button>
-        <button class="btn ghost" id="btnRefer">依法告知 · 转其他途径</button>
-      </div>
-    </section>
 
     <div class="dialog-dock" id="dock">
       <div class="dock-head">
@@ -75,6 +64,18 @@
       </form>
       <div class="meters" id="meters"></div>
     </div>
+    <section class="plan-card" id="planCard">
+      <div class="plan-head">
+        <h3>调解方案 <span class="plan-progress" id="planProgress">0/4</span></h3>
+        <span>四个维度，各选一条。选完再决定：出协议，还是依法转办。</span>
+      </div>
+      <div class="plan-dims" id="planDims"></div>
+      <div class="plan-actions">
+        <button class="btn primary" id="btnAgree">出具调解协议书</button>
+        <button class="btn ghost" id="btnRefer">依法告知 · 转其他途径</button>
+      </div>
+    </section>
+
   </section>
 
   <!-- 右：卷宗 -->
@@ -110,6 +111,10 @@
     </div>
   </aside>
 </main>
+
+<div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
+
+<button class="fab" id="btnReopen" hidden>看复盘</button>
 
 <div class="modal" id="reportModal" hidden>
   <div class="modal-box">

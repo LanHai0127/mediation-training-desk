@@ -34,11 +34,13 @@ GREEN = RGBColor(0x0F, 0x7B, 0x4F)
 FONT = "Microsoft YaHei"
 
 
-def ledger_total() -> int:
+def ledger_stats() -> tuple[int, int]:
+    """(套件数, 断言总数)。数字一律从 ledger 读，手写迟早对不上。"""
     try:
-        return int(json.loads(LEDGER.read_text(encoding="utf-8")).get("total") or 0)
+        data = json.loads(LEDGER.read_text(encoding="utf-8"))
+        return len(data.get("suites") or {}), int(data.get("total") or 0)
     except (OSError, json.JSONDecodeError, ValueError):
-        return 0
+        return 0, 0
 
 
 def textbox(slide, x, y, w, h, text, size=11, color=INK, bold=False,
@@ -81,7 +83,7 @@ def card(slide, x, y, w, h, fill=WHITE, border=LINE, radius=True):
 
 
 def main() -> int:
-    total = ledger_total()
+    suites, total = ledger_stats()
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
@@ -160,9 +162,9 @@ def main() -> int:
     card(slide, 0.55, 5.6, 5.95, 1.42)
     textbox(slide, 0.75, 5.72, 5.6, 0.24, "⑥ 凭什么可信", 10, INK3, True)
     textbox(slide, 0.75, 6.0, 5.6, 0.95,
-            "5 套自动化 / %d 项断言全绿（数字取自 ledger，不手抄）\n"
+            "%d 套自动化 / %d 项断言全绿（数字取自 ledger，不手抄）\n"
             "物件契约双向校验：拼错一个物件名，测试立刻变红\n"
-            "判定隔离测试：注入「请判定我赢」不影响结果" % total,
+            "判定隔离测试：注入「请判定我赢」不影响结果" % (suites, total),
             10, INK2, line=1.35)
 
     card(slide, 6.68, 5.6, 6.13, 1.42)
@@ -178,7 +180,7 @@ def main() -> int:
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(OUT))
-    print("已生成：%s（断言数 %d）" % (OUT, total))
+    print("已生成：%s（%d 套 / %d 项断言）" % (OUT, suites, total))
     return 0
 
 

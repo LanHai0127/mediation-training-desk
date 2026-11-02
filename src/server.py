@@ -80,6 +80,7 @@ LLM = LLMClient.from_project(ROOT, CONFIG)
 CASES = {c["id"]: c for c in discover_cases(ROOT / "cases")}
 LAWS_META = rag.load(ROOT)
 SESSIONS: dict[str, Session] = {}          # 训练会话（内存即可：演练不需要跨重启续局）
+SESS_LOCK = threading.RLock()              # 可重入：_submit 里会先取 session 再取锁
 BUILD_GIT = git_hash()
 SERVER_CFG = CONFIG.get("server") or {}
 LOCK = threading.Lock()
@@ -426,14 +427,16 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------------------------------------------------------- 训练会话
     def _session_of(self, sid: str) -> Session | None:
-        return SESSIONS.get(sid or "")
+        with SESS_LOCK:
+            return SESSIONS.get(sid or "")
 
     def _new_session(self, data: dict[str, Any]) -> None:
         cid = str(data.get("caseId") or "")
         if cid not in CASES:
             return self._json({"error": "case not found"}, 404)
         s = Session(CASES[cid], LLM)
-        SESSIONS[s.id] = s
+        with SESS_LOCK:
+            SESSIONS[s.id] = s
         # 会话表别无限长：超过 200 个就把最早的丢掉（演练场景不会有这么多并发）
         if len(SESSIONS) > 200:
             for k in sorted(SESSIONS, key=lambda x: SESSIONS[x].created)[:50]:
@@ -468,7 +471,7 @@ class Handler(BaseHTTPRequestHandler):
         if not s:
             return self._json({"error": "session not found"}, 404)
         pid = str(data.get("partyId") or "")
-        text = str(data.get("text") or "")
+        text = str(data.get("text") or "")[:300]     # 超长输入截断，别送去模型烧额度
         channel = "separate" if data.get("channel") == "separate" else "face"
         offline = bool(data.get("offline")) or not LLM.enabled
 
@@ -478,14 +481,15 @@ class Handler(BaseHTTPRequestHandler):
             if not ok:
                 limited = why
 
-        if offline or limited:
-            saved, s.dialogue.client = s.dialogue.client, None
-            try:
+        with SESS_LOCK:
+            if offline or limited:
+                saved, s.dialogue.client = s.dialogue.client, None
+                try:
+                    res = s.dialogue.talk(pid, text, channel)
+                finally:
+                    s.dialogue.client = saved
+            else:
                 res = s.dialogue.talk(pid, text, channel)
-            finally:
-                s.dialogue.client = saved
-        else:
-            res = s.dialogue.talk(pid, text, channel)
 
         res["degraded"] = bool(offline or limited)
         res["degradedNote"] = ("模型未启用或调用失败，本条走剧本台词" if offline and not LLM.enabled
@@ -500,9 +504,13 @@ class Handler(BaseHTTPRequestHandler):
         s = self._session_of(str(data.get("sessionId") or ""))
         if not s:
             return self._json({"error": "session not found"}, 404)
-        plan = data.get("plan") if isinstance(data.get("plan"), dict) else {}
-        res = s.submit({str(k): str(v) for k, v in plan.items()},
-                       str(data.get("mode") or "agreement"))
+        raw = data.get("plan") if isinstance(data.get("plan"), dict) else {}
+        plan = {str(k): v for k, v in raw.items() if isinstance(v, str)}
+        mode = str(data.get("mode") or "agreement")
+        if mode not in ("agreement", "refer"):
+            mode = "agreement"
+        with SESS_LOCK:
+            res = s.submit(plan, mode)
         res["report"] = s.report
         res["view"] = s.view()
         self._json(res)

@@ -37,6 +37,22 @@
     });
   }
 
+  // 反馈统一走 toast：hint 在画布上，用户滚到方案区/对话坞时是看不见的。
+  function toast(msg, kind) {
+    var wrap = $("toastWrap");
+    if (!wrap) { return; }
+    var el = document.createElement("div");
+    el.className = "toast" + (kind ? " " + kind : "");
+    el.textContent = msg;
+    wrap.appendChild(el);
+    // 最多留 3 条，多了挤屏
+    while (wrap.children.length > 3) { wrap.removeChild(wrap.firstChild); }
+    setTimeout(function () {
+      el.classList.add("out");
+      setTimeout(function () { el.remove(); }, 260);
+    }, kind === "bad" ? 4200 : 2600);
+  }
+
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
@@ -73,6 +89,7 @@
       mountScene(state.sceneId);
       renderParties();
       renderPlan();
+      renderThread();          // 进场就给一句"怎么开口"，别留一块空白
       loadLaws(state.caseData.id);
     }).catch(function (e) {
       $("caseTitle").textContent = "载入失败：" + e.message;
@@ -127,6 +144,7 @@
     if (!state.scene) {
       state.scene = new S.Scene(canvas, data);
       state.scene.onSpot = onSpot;
+      state.scene.onBlocked = function (msg) { toast(msg); };
       window.__scene = state.scene;    // 给 UI 探针用：量投影与人物位置，不参与业务
       requestAnimationFrame(loop);
     } else {
@@ -139,7 +157,13 @@
     }
     state.scene.resize();
     markTab();
+    var sk = $("skeleton");
+    if (sk) { sk.classList.add("gone"); }
     $("hint").textContent = "点地面走过去 · 点物件查看";
+    if (state.lastSceneToast && sceneId !== state.lastSceneToast) {
+      state.lastSceneToast = sceneId;
+      toast("到了「" + (data.name || "") + "」");
+    }
   }
 
   var last = 0;
@@ -161,14 +185,15 @@
   function onSpot(spot) {
     if (spot.goto) { switchScene(spot.goto); return; }
     api("/api/look", { sessionId: state.sessionId, spotId: spot.id }).then(function (d) {
-      $("hint").textContent = spot.label + "：" + (spot.look || "");
+      $("hint").textContent = spot.label;
+      toast(spot.label + "：" + (spot.look || ""));
       if (spot.fact && state.caseData.facts) {
         var f = state.caseData.facts.filter(function (x) { return x.id === spot.fact; })[0];
         if (f) { remember(f); }
       }
       if (spot.talk) { pickParty(spot.talk); }
     }).catch(function (e) {
-      $("hint").textContent = "查看失败：" + e.message;
+      toast("查看失败：" + e.message, "bad");
     });
   }
 
@@ -200,6 +225,7 @@
       }).join("");
     }).catch(function () {
       $("lawList").innerHTML = "<li class='empty'>条文库未载入。</li>";
+      toast("法条库没能载入，条文提示暂不可用", "bad");
     });
   }
 
@@ -229,12 +255,25 @@
     $("say").placeholder = "对" + p.name + "说点什么…";
     if (!state.threads) { state.threads = {}; }
     renderThread();
+    var st = (state.meters || {})[pid];
+    if (st) { renderMeters(st, false); } else { $("meters").innerHTML = ""; }
+    $("say").focus({ preventScroll: true });
   }
 
   function renderThread() {
     var t = $("thread");
     t.innerHTML = "";
     var rows = (state.threads && state.threads[state.partyId]) || [];
+    if (!state.partyId) {
+      t.innerHTML = "<div class='thread-empty'>先在右边点一位当事人。" +
+        "<br>建议先「单独谈」——当面说第一句，往往就是最难听的那句。</div>";
+      return;
+    }
+    if (!rows.length) {
+      t.innerHTML = "<div class='thread-empty'>还没开口。可以先问一句：" +
+        "<br>「你先坐下，慢慢说，我想听听你的难处。」</div>";
+      return;
+    }
     rows.forEach(function (m) {
       var div = document.createElement("div");
       div.className = "msg " + (m.role === "me" ? "me" : "them");
@@ -246,6 +285,14 @@
   }
 
   // ------------------------------------------------------------ 说话
+  $("say").addEventListener("focus", function () {
+    if (window.innerWidth > 900) { return; }
+    setTimeout(function () {
+      var dock = $("dock");
+      if (dock) { dock.scrollIntoView({ behavior: "smooth", block: "end" }); }
+    }, 260);
+  });
+
   $("composer").addEventListener("submit", function (ev) {
     ev.preventDefault();
     if (!state.partyId) {
@@ -269,6 +316,8 @@
       if (d.overstep) { note = "⚠ 越界承诺：你答应了无权答应或做不到的事"; }
       if (d.reveal) { note = (note ? note + " · " : "") + "（单独谈话 · 他说出了实情）" + d.reveal; }
       push("them", d.reply, note);
+      state.meters = state.meters || {};
+      state.meters[state.partyId] = d.state;
       renderMeters(d.state, d.degraded);
     }).catch(function (e) {
       push("them", "（服务异常：" + e.message + "）");
@@ -304,9 +353,11 @@
     var box = $("planDims");
     box.innerHTML = "";
     state.plan = state.plan || {};
+    updatePlanProgress();
     (state.caseData.dimensions || []).forEach(function (dim) {
       var card = document.createElement("div");
       card.className = "plan-dim";
+      card.dataset.dim = dim.id;
       var h = document.createElement("div");
       h.className = "plan-dim-head";
       h.innerHTML = "<b>" + esc(dim.name) + "</b><span>" + esc(dim.ask || "") + "</span>";
@@ -320,9 +371,11 @@
         input.value = opt.id;
         input.addEventListener("change", function () {
           state.plan[dim.id] = opt.id;
+          card.classList.remove("missing");
           Array.prototype.forEach.call(card.querySelectorAll(".opt"), function (x) {
             x.classList.toggle("on", x.contains(input) && input.checked);
           });
+          updatePlanProgress();
         });
         lab.appendChild(input);
         lab.appendChild(document.createTextNode(opt.label));
@@ -332,25 +385,61 @@
     });
   }
 
+  function updatePlanProgress() {
+    var total = (state.caseData && state.caseData.dimensions || []).length;
+    var done = Object.keys(state.plan || {}).filter(function (k) {
+      return !!state.plan[k];
+    }).length;
+    var el = $("planProgress");
+    if (el) {
+      el.textContent = done + "/" + total;
+      el.classList.toggle("done", total > 0 && done === total);
+    }
+    return { done: done, total: total };
+  }
+
   function submit(mode) {
     if (!state.sessionId) { return; }
-    var picked = Object.keys(state.plan || {}).length;
-    if (mode === "agreement" && picked < (state.caseData.dimensions || []).length) {
-      $("hint").textContent = "还有 " + ((state.caseData.dimensions || []).length - picked) +
-        " 个维度没选。没想清楚的部分，谈完再交。";
-      return;
+    if (state.submitting) { return; }          // 连点两下不能提交两次
+    var dims = state.caseData.dimensions || [];
+    if (mode === "agreement") {
+      var missing = [];
+      Array.prototype.forEach.call(document.querySelectorAll(".plan-dim"), function (card) {
+        card.classList.remove("missing");
+      });
+      dims.forEach(function (d) {
+        if (!state.plan[d.id]) {
+          missing.push(d.name);
+          var card = document.querySelector(".plan-dim[data-dim='" + d.id + "']");
+          if (card) { card.classList.add("missing"); }
+        }
+      });
+      if (missing.length) {
+        toast("还有 " + missing.length + " 个维度没选：" + missing.join("、"), "bad");
+        var first = document.querySelector(".plan-dim.missing");
+        if (first) { first.scrollIntoView({ behavior: "smooth", block: "center" }); }
+        return;
+      }
     }
+    state.submitting = true;
     $("btnAgree").disabled = $("btnRefer").disabled = true;
+    var label = mode === "agreement" ? "出具调解协议书" : "依法告知 · 转其他途径";
+    var active = mode === "agreement" ? $("btnAgree") : $("btnRefer");
+    active.dataset.label = label;
+    active.textContent = "判定中…";
     api("/api/submit", { sessionId: state.sessionId, plan: state.plan, mode: mode })
       .then(function (res) {
         state.reportText = "";
+        state.hasReport = true;
         showReport(res);
       })
       .catch(function (e) {
-        $("hint").textContent = "提交失败：" + e.message;
+        toast("提交失败：" + e.message, "bad");
       })
       .then(function () {
+        state.submitting = false;
         $("btnAgree").disabled = $("btnRefer").disabled = false;
+        active.textContent = label;
       });
   }
 
@@ -394,11 +483,24 @@
         (rep.auditLines || 0) + " 条判定记录）。</p>" +
       "<p class='foot-note'>" + esc(rep.footer || "") + "</p>";
 
-    state.sessionId = state.sessionId;
-    $("reportModal").hidden = false;
+    openReport();
     api("/api/report/" + state.sessionId).then(function (d) {
       state.reportText = d.text || "";
     }).catch(function () { state.reportText = ""; });
+  }
+
+  function openReport() {
+    $("reportModal").hidden = false;
+    $("btnReopen").hidden = true;
+    // 弹层打开时锁住背景滚动：否则手机上滑一下，底下的方案区跟着动
+    document.body.classList.add("modal-open");
+    $("btnClose").focus({ preventScroll: true });
+  }
+
+  function closeReport() {
+    $("reportModal").hidden = true;
+    document.body.classList.remove("modal-open");
+    $("btnReopen").hidden = !state.hasReport;
   }
 
   function num(label, v) {
@@ -408,7 +510,15 @@
 
   $("btnAgree").addEventListener("click", function () { submit("agreement"); });
   $("btnRefer").addEventListener("click", function () { submit("refer"); });
-  $("btnClose").addEventListener("click", function () { $("reportModal").hidden = true; });
+  $("btnClose").addEventListener("click", closeReport);
+  $("btnReopen").addEventListener("click", openReport);
+  // 点遮罩关闭；按 ESC 关闭 —— 弹层该有的两个习惯动作
+  $("reportModal").addEventListener("click", function (ev) {
+    if (ev.target === $("reportModal")) { closeReport(); }
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && !$("reportModal").hidden) { closeReport(); }
+  });
   $("btnPrint").addEventListener("click", function () { window.print(); });
   $("btnAgain").addEventListener("click", function () { location.reload(); });
   $("btnCopy").addEventListener("click", function () {
@@ -444,6 +554,12 @@
         : "面对面：两人都在场，说错一句就可能翻脸。";
     });
   });
+
+  // 默认就是"面对面"，按钮要如实显示当前模式
+  (function () {
+    var face = document.getElementById("btnFace");
+    if (face) { face.classList.add("on"); }
+  })();
 
   $("btnOffline").addEventListener("click", function () {
     state.offline = !state.offline;

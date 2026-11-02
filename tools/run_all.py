@@ -52,6 +52,10 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("test_laws", ["tools/test_laws.py"], False),
     # S5：对话层——拔模型能走、不复读、不返回判定、事实白名单。
     ("test_llm", ["tools/test_llm.py"], True),
+    # 接口边界：乱传参数、并发提交、超长文本。
+    ("test_api", ["tools/test_api.py"], True),
+    # 浏览器交互（需 websocket-client；普通解释器会自动 SKIP 并在汇总里注明）。
+    ("test_ui", ["tools/test_ui.py"], True),
 ]
 
 LOG_DIR = ROOT / "tools" / "_logs"
@@ -70,8 +74,8 @@ def server_up() -> bool:
         return False
 
 
-def run_one(name: str, argv: list[str], timeout: int, verbose: bool) -> tuple[int, int, int, str]:
-    """跑一个套件，边跑边打日志。返回 (通过数, 失败数, 退出码, 尾部输出)。"""
+def run_one(name: str, argv: list[str], timeout: int, verbose: bool) -> tuple[int, int, int, str, bool]:
+    """跑一个套件，边跑边打日志。返回 (通过数, 失败数, 退出码, 尾部输出, 是否跳过)。"""
     proc = subprocess.Popen([sys.executable] + argv, cwd=str(ROOT),
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, encoding="utf-8", errors="replace", bufsize=1)
@@ -104,7 +108,9 @@ def run_one(name: str, argv: list[str], timeout: int, verbose: bool) -> tuple[in
         tail.append("[超时] 超过 %d 秒已终止" % timeout)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     (LOG_DIR / ("%s.log" % name)).write_text("\n".join(full), encoding="utf-8")
-    return passed, failed, (proc.returncode if proc.returncode is not None else -1), "\n".join(tail[-12:])
+    skipped = any(line.strip().startswith("[SKIP]") for line in full)
+    return (passed, failed, (proc.returncode if proc.returncode is not None else -1),
+            "\n".join(tail[-12:]), skipped)
 
 
 def main() -> int:
@@ -145,27 +151,33 @@ def main() -> int:
         print("\n" + "-" * 70)
         print("▶ %s" % name)
         t = time.time()
-        passed, failed, code, _tail = run_one(name, argv, args.timeout, args.verbose)
+        passed, failed, code, _tail, skipped = run_one(name, argv, args.timeout, args.verbose)
         dt = time.time() - t
-        ok = code == 0 and failed == 0
-        print("  %s ｜ 通过 %d ｜ 失败 %d ｜ %.1fs ｜ 退出码 %d"
-              % ("✅" if ok else "❌", passed, failed, dt, code))
+        ok = code == 0 and failed == 0 and not skipped
+        mark = "⏭" if skipped else ("✅" if ok else "❌")
+        print("  %s ｜ 通过 %d ｜ 失败 %d ｜ %.1fs ｜ 退出码 %d%s"
+              % (mark, passed, failed, dt, code, "（跳过：缺依赖）" if skipped else ""))
         results[name] = {"total": passed, "failed": failed, "exit": code,
-                         "seconds": round(dt, 1), "ok": ok}
+                         "seconds": round(dt, 1), "ok": ok, "skipped": skipped}
 
     assert_suites = {k: v for k, v in results.items() if v["total"] > 0}
     total = sum(v["total"] for v in assert_suites.values())
-    bad = [k for k, v in results.items() if not v["ok"]]
+    bad = [k for k, v in results.items() if not v["ok"] and not v.get("skipped")]
+    skipped = [k for k, v in results.items() if v.get("skipped")]
 
     print("\n" + "=" * 70)
     print("汇总（%.1fs）" % (time.time() - t0))
     for k, v in results.items():
-        print("  %-16s 通过 %-4d 失败 %-3d %s" % (k, v["total"], v["failed"], "✅" if v["ok"] else "❌"))
+        mark = "⏭" if v.get("skipped") else ("✅" if v["ok"] else "❌")
+        print("  %-16s 通过 %-4d 失败 %-3d %s" % (k, v["total"], v["failed"], mark))
     print("  断言套件合计：%d 项" % total)
+    if skipped:
+        print("  ⏭ 跳过（缺依赖，未计入）：%s —— 用隔离解释器可补跑" % "、".join(skipped))
 
     # 「跑不起来」不是「没通过」：0 条断言 + 非零退出 = 解释器不对 / 端口被占 / 服务没起。
     # 这种结果绝不能进 ledger —— 记一笔 0，文档里的合计数字当场全崩。
-    boot_fail = [k for k, v in results.items() if v["total"] == 0 and v["exit"] != 0]
+    boot_fail = [k for k, v in results.items()
+                 if v["total"] == 0 and v["exit"] != 0 and not v.get("skipped")]
     if boot_fail:
         print("\n" + "=" * 70)
         print("✗ %d 个套件跑了 0 条断言就非零退出 —— 这不是测试结果，是**没跑起来**：" % len(boot_fail))
@@ -187,6 +199,8 @@ def main() -> int:
         }
         LEDGER.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         print("  ledger 已写入 tools/_ledger.json")
+        if skipped:
+            payload["skipped"] = skipped
         if len(picked) < len(SUITES):
             print("  ！本次只跑了 %d/%d 个套件，ledger 是**部分**结果" % (len(picked), len(SUITES)))
 

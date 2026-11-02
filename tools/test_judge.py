@@ -109,6 +109,10 @@ def main() -> int:
     over = judge.evaluate(good, dict(ctx, oversteps=2), "agreement")
     check(over["ending"] == "overpromised", "越界承诺 ≥2 次 → 判不合格", over["ending"])
 
+    bogus = judge.evaluate(dict(good, dim_claim="o_不存在"), ctx, "agreement")
+    check(bogus["ending"] == "bad_plan" and bogus["invalidPlan"],
+          "未知选项 → 判「无效」，绝不回落到第一个选项", "%s/%s" % (bogus["ending"], bogus["invalidPlan"]))
+
     blank = judge.evaluate({}, ctx, "agreement")
     check(blank["ending"] == "need_more" and blank["confidence"] == 0.0,
           "空方案 → 待补、置信度 0", "%s/%.2f" % (blank["ending"], blank["confidence"]))

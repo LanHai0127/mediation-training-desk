@@ -531,8 +531,9 @@
   Scene.prototype.resize = function () {
     var box = this.canvas.parentElement || this.canvas;
     var cssW = Math.max(320, box.clientWidth);
-    // 场景固定 3:2，移动端竖屏也能整块装下，不裁切
-    var cssH = Math.round(cssW * 2 / 3);
+    // 桌面 3:2；手机竖屏给高一点（画面更大，不然人只有指甲盖大）
+    var ratio = cssW < 520 ? 0.86 : 2 / 3;
+    var cssH = Math.round(cssW * ratio);
     this.dpr = Math.min(2, global.devicePixelRatio || 1);
     this.canvas.width = Math.round(cssW * this.dpr);
     this.canvas.height = Math.round(cssH * this.dpr);
@@ -589,7 +590,11 @@
       self.tap(ev.clientX - r.left, ev.clientY - r.top);
     });
 
+    var lastMove = 0;
     this.canvas.addEventListener("pointermove", function (ev) {
+      var now = Date.now();
+      if (now - lastMove < 60) { return; }     // 拾取要遍历+排序，60ms 一次足够
+      lastMove = now;
       var r = self.canvas.getBoundingClientRect();
       var p = self.unproject(ev.clientX - r.left, ev.clientY - r.top);
       var hit = self.pick(p.x, p.y);
@@ -625,20 +630,27 @@
       this.walkTo(cx, cy + spot.h * 0.5 + 26, spot);
       return;
     }
-    if (p.y < BACKDROP_Y + 8) { return; }        // 点到了墙面/地平线以上，走不过去
-    this.walkTo(p.x, p.y, null);
+    if (p.y < BACKDROP_Y + 8) {                  // 点到了墙面/地平线以上
+      if (this.onBlocked) { this.onBlocked("那边是墙，走不过去"); }
+      return;
+    }
+    if (!this.walkTo(p.x, p.y, null) && this.onBlocked) {
+      this.onBlocked("过不去，换个地方试试");
+    }
   };
 
   Scene.prototype.walkTo = function (x, y, thenSpot) {
+    // 返回是否找到了路：找不到时调用方要提示，不然玩家会以为"点了没反应"
     var from = this.player;
     var start = nearestFree(this.blocked, gridPos(from.x, from.y).col, gridPos(from.x, from.y).row);
     var goal = nearestFree(this.blocked, gridPos(x, Math.max(BACKDROP_Y + TILE, y)).col,
                           gridPos(x, Math.max(BACKDROP_Y + TILE, y)).row);
-    if (!start || !goal) { return; }
+    if (!start || !goal) { return false; }
     var cells = astar(this.blocked, start, goal);
-    if (!cells || !cells.length) { return; }
+    if (!cells || !cells.length) { return false; }
     this.path = cells.map(function (c) { return cellCenter(c.col, c.row); });
     this.pending = thenSpot || null;
+    return true;
   };
 
   Scene.prototype.update = function (dt) {
@@ -702,10 +714,15 @@
   };
 
   Scene.prototype.drawShell = function (ctx) {
-    var g = ctx.createLinearGradient(0, 0, 0, this.h * 0.5);
-    g.addColorStop(0, PALETTE.wallFar);
-    g.addColorStop(1, PALETTE.wallNear);
-    ctx.fillStyle = g;
+    var key = this.h + "|wall";
+    if (!this._wallGrad || this._wallKey !== key) {
+      var g = ctx.createLinearGradient(0, 0, 0, this.h * 0.5);
+      g.addColorStop(0, PALETTE.wallFar);
+      g.addColorStop(1, PALETTE.wallNear);
+      this._wallGrad = g;
+      this._wallKey = key;
+    }
+    ctx.fillStyle = this._wallGrad;
     ctx.fillRect(0, 0, this.w, this.h);
     // 墙裙：给"室内"一点纵向层次
     if (this.data.setting === "room") {
@@ -732,15 +749,20 @@
     ctx.lineTo(bottomRight.sx, bottomRight.sy);
     ctx.lineTo(bottomLeft.sx, bottomLeft.sy);
     ctx.closePath();
-    var g = ctx.createLinearGradient(0, topLeft.sy, 0, bottomLeft.sy);
-    if (this.data.setting === "room") {
-      g.addColorStop(0, "#ece6da");
-      g.addColorStop(1, PALETTE.floor);
-    } else {
-      g.addColorStop(0, "#dfdcd2");
-      g.addColorStop(1, "#d3cfc3");
+    var fkey = Math.round(topLeft.sy) + "|" + Math.round(bottomLeft.sy) + "|" + this.data.setting;
+    if (!this._floorGrad || this._floorKey !== fkey) {
+      var g = ctx.createLinearGradient(0, topLeft.sy, 0, bottomLeft.sy);
+      if (this.data.setting === "room") {
+        g.addColorStop(0, "#ece6da");
+        g.addColorStop(1, PALETTE.floor);
+      } else {
+        g.addColorStop(0, "#dfdcd2");
+        g.addColorStop(1, "#d3cfc3");
+      }
+      this._floorGrad = g;
+      this._floorKey = fkey;
     }
-    ctx.fillStyle = g;
+    ctx.fillStyle = this._floorGrad;
     ctx.fill();
 
     // 地砖缝：越远越密，这是"透视"的第二个视觉证据

@@ -69,6 +69,7 @@ class MediationJudge:
         audit: list[dict[str, Any]] = []
 
         satisfied: dict[str, float] = {}
+        invalid_plans: list[dict[str, str]] = []
         dim_rows: list[dict[str, Any]] = []
         qualities: list[float] = []
         missing_facts: list[str] = []
@@ -79,8 +80,15 @@ class MediationJudge:
             if not dim:
                 continue
             opts = dim.get("options") or []
-            chosen_id = plan.get(dim_id, "")
-            chosen = noul(opts, lambda o: 1.0 if o.get("id") == chosen_id else 0.0) if chosen_id else None
+            raw = plan.get(dim_id, "")
+            chosen_id = raw if isinstance(raw, str) else ""      # 非字符串一律当没填
+            by_id = {o.get("id"): o for o in opts}
+            chosen = by_id.get(chosen_id) if chosen_id else None
+            # ⚠️ 这里曾经用 noul() 回落取"最像的那个"，结果传一个不存在的 id 会**命中第一个选项**
+            #    （往往正是满分项）—— 乱填也能拿 1.00。选项必须精确匹配，匹配不到就是没作答。
+            invalid = bool(chosen_id) and chosen is None
+            if invalid:
+                invalid_plans.append({"dim": dim_id, "option": chosen_id})
 
             # 该维度上"每个选项有多好"的分布 → 用来算这一维的置信度
             usable = []
@@ -173,7 +181,8 @@ class MediationJudge:
         # ---------------- 结局路由
         unanswered = [r["id"] for r in dim_rows if not r.get("chosen")]
         ending, verdict, why = self._route(mode, ceiling, total, oversteps, separate_done,
-                                           coverage, unanswered, sorted(set(missing_facts)))
+                                           coverage, unanswered, sorted(set(missing_facts)),
+                                           invalid_plans)
 
         audit.append({"step": "score", "coverage": round(coverage, 4), "ceiling": round(ceiling, 4),
                       "dimAvg": round(dim_avg, 4), "process": round(process, 4),
@@ -196,6 +205,7 @@ class MediationJudge:
                         "score": round(process, 4)},
             "missingFacts": sorted(set(missing_facts)),
             "unavailable": unavailable,
+            "invalidPlan": invalid_plans,
             "satisfiedNeeds": sorted(satisfied),
             "audit": audit,
         }
@@ -204,27 +214,38 @@ class MediationJudge:
     def _route(mode: str, ceiling: float, total: float,
                oversteps: int, separate_done: bool, coverage: float = 0.0,
                unanswered: list[str] | None = None,
-               missing_facts: list[str] | None = None) -> tuple[str, str, str]:
+               missing_facts: list[str] | None = None,
+               invalid_plans: list[dict[str, str]] | None = None) -> tuple[str, str, str]:
         """结局不是"分高分低"，而是**这件事该怎么办**。
 
-        调解的正确答案不止一个：谈成是好，谈不成而依法转办同样是合格结局；
-        谈不成却硬凑一份协议，是最坏的那种"差不多得了"。
+        判定顺序有讲究，写在最前面：
+          ① 方案本身不成立（选了不存在的项）→ 无效，先别谈结论
+          ② 转办：只取决于"还有没有得谈"（天花板），与方案填得好不好无关
+          ③ 方案没填完 → 待补
+          ④ 结构性冲突（天花板 < 0.40）→ 硬凑不合格；转办已经在上一步判过了
+          ⑤ 关键条款缺证据 → 待补（补证据能救，谈崩了补不了）
+          ⑥ 程序与过程 → ⑦ 结果分
         """
-        if ceiling < RUPTURE_CEILING:
-            if mode == "refer":
+        if invalid_plans:
+            return ("bad_plan", "无效", "方案里有不属于本案的选项：%s —— 请重新选择"
+                    % "、".join("%s/%s" % (x["dim"], x["option"]) for x in invalid_plans))
+
+        rupture = ceiling < RUPTURE_CEILING
+        if mode == "refer":
+            if rupture:
                 return ("rupture_referred", "合格",
                         "双方底线存在结构性冲突，覆盖率天花板只有 %.2f，依法告知并转办是正确处置" % ceiling)
-            return ("forced_agreement", "不合格",
-                    "双方底线无法同时满足（天花板 %.2f），此时凑出的协议签了也执行不了" % ceiling)
-
-        if mode == "refer":
             return ("early_giveup", "不合格", "还有可谈的余地，过早转办等于把矛盾推回去")
 
         if unanswered:
             return ("need_more", "待补", "还有 %d 个维度没给方案：%s" % (len(unanswered), "、".join(unanswered)))
+        # 底线冲突优先于"缺证据"：两头已经谈崩了，再补证据也签不下来
+        if rupture:
+            return ("forced_agreement", "不合格",
+                    "双方底线无法同时满足（天花板 %.2f），此时凑出的协议签了也执行不了" % ceiling)
         if missing_facts:
-            return ("need_more", "待补",
-                    "关键条款缺证据支撑：%s" % "、".join(missing_facts))
+            return ("need_more", "待补", "关键条款缺证据支撑：%s" % "、".join(missing_facts))
+
         if not separate_done:
             return ("no_separate", "不合格", "没有分别谈话，直接面对面容易把人逼到墙角")
         if oversteps >= 2:
