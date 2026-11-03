@@ -349,7 +349,7 @@ export function createScene(opts) {
 
   const blocked = buildGrid(opts.obstacles || opts.props || []);
   const state = {
-    path: [], target: null, pending: null, walking: false, phase: 0,
+    path: [], target: null, pending: null, walking: false, phase: 0, sitting: false,
     camYaw: Math.PI / 4, camPitch: 0.76, camDist: 24,
     focus: new THREE.Vector3(actor.position.x, EYE_H, actor.position.z)
   };
@@ -365,6 +365,25 @@ export function createScene(opts) {
       state.focus.z + Math.cos(state.camYaw) * r
     );
     camera.lookAt(state.focus);
+  }
+
+  // 浮尘：室内空气里的一点微粒，让画面不像真空
+  if (opts.dust !== false) {
+    const n = 140;
+    const pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * (room.x1 - room.x0 - 1);
+      pos[i * 3 + 1] = Math.random() * 2.6 + 0.2;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * (room.z1 - room.z0 - 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const dust = new THREE.Points(geo, new THREE.PointsMaterial({
+      color: "#fff6e2", size: 0.028, transparent: true, opacity: 0.45, depthWrite: false
+    }));
+    dust.position.set((room.x0 + room.x1) / 2, 0, (room.z0 + room.z1) / 2);
+    scene.add(dust);
+    state.dust = dust;
   }
 
   // ---------------------------------------------------------------- 输入
@@ -428,6 +447,18 @@ export function createScene(opts) {
     const p = groundAt(ev);
     if (p) { walkTo(p.x, p.z); }
   });
+  // 视角复位：R 键或双击画面
+  function resetView() {
+    state.camYaw = Math.PI / 4;
+    state.camPitch = 0.78;
+    state.camDist = opts.camDist || 24;
+    placeCamera();
+  }
+  window.addEventListener("keydown", (ev) => {
+    if (ev.key === "r" || ev.key === "R") { resetView(); }
+  });
+  el.addEventListener("dblclick", resetView);
+
   el.addEventListener("wheel", (ev) => {
     ev.preventDefault();
     state.camDist = Math.max(8, Math.min(30, state.camDist + ev.deltaY * 0.012));
@@ -474,6 +505,7 @@ export function createScene(opts) {
 
   // ---------------------------------------------------------------- 寻路
   function walkTo(x, z, pending) {
+    state.sitting = false;              // 起身由"要走"触发，不靠帧判断
     const from = [cell(actor.position.x), cell(actor.position.z)];
     const goal = freeNear(blocked, cell(x), cell(z));
     if (!goal) { fire("actor:blocked", {}); return false; }
@@ -524,7 +556,7 @@ export function createScene(opts) {
     if (!p) { return; }
     const d = p.data;
     const ip = d.interact || { x: d.x, z: d.z + (d.d || 0.8) / 2 + 1.0 };
-    walkTo(ip.x, ip.z, { type: "spot", id });
+    walkTo(ip.x, ip.z, { type: "spot", id, seat: !!d.seat, facing: d.facing || 0 });
   }
 
   function goToPerson(id) {
@@ -564,6 +596,12 @@ export function createScene(opts) {
           ring.visible = false;
           const pending = state.pending;
           state.pending = null;
+          if (pending && pending.seat) {
+            state.sitting = true;
+            actor.rotation.y = pending.facing || actor.rotation.y;
+            fire("actor:seat", { id: pending.id });
+            return;
+          }
           fire("actor:arrived", { x: actor.position.x, z: actor.position.z });
           if (pending) { fire(pending.type === "spot" ? "spot:click" : "person:click", { id: pending.id }); }
         }
@@ -584,14 +622,28 @@ export function createScene(opts) {
       state.phase += dt * 1.6;
     }
 
+    // 坐下 / 起身：走路或点击地面就自动站起
+    if (state.path.length && state.sitting) { state.sitting = false; }
+    if (state.sitting) {
+      state.phase += dt * 1.2;
+    }
+
     // 摆臂 / 走路起伏
     const parts = actor.userData.parts;
     const swing = state.walking ? Math.sin(state.phase) * 0.5 : Math.sin(state.phase) * 0.03;
     parts.arms[0].rotation.x = swing;
     parts.arms[1].rotation.x = -swing;
-    parts.legs[0].rotation.x = -swing * 0.9;
-    parts.legs[1].rotation.x = swing * 0.9;
-    actor.position.y = state.walking ? Math.abs(Math.sin(state.phase)) * 0.035 : 0;
+    if (state.sitting) {
+      parts.legs[0].rotation.x = -1.35;
+      parts.legs[1].rotation.x = -1.35;
+      parts.arms[0].rotation.x = -0.15;
+      parts.arms[1].rotation.x = -0.15;
+      actor.position.y = -0.32 + Math.sin(state.phase) * 0.006;
+    } else {
+      parts.legs[0].rotation.x = -swing * 0.9;
+      parts.legs[1].rotation.x = swing * 0.9;
+      actor.position.y = state.walking ? Math.abs(Math.sin(state.phase)) * 0.035 : 0;
+    }
 
     // 站位人物呼吸
     people.forEach((g, id) => {
@@ -600,6 +652,16 @@ export function createScene(opts) {
       const baseY = g.userData.sit ? 0.42 : 0;
       g.position.y = baseY + Math.sin(t * 1.3 + ph) * 0.008;
     });
+
+    // 浮尘缓慢上浮，到顶回到底部
+    if (state.dust) {
+      const arr = state.dust.geometry.attributes.position.array;
+      for (let i = 1; i < arr.length; i += 3) {
+        arr[i] += dt * 0.05;
+        if (arr[i] > 2.8) { arr[i] = 0.15; }
+      }
+      state.dust.geometry.attributes.position.needsUpdate = true;
+    }
 
     // 灯微呼吸
     sun.intensity = 2.6 * (1 + Math.sin(t * 1.7) * 0.004);
@@ -616,11 +678,6 @@ export function createScene(opts) {
     }
     state.focus.y += (EYE_H - state.focus.y) * 0.1;
 
-    if (performance.now() - idleSince > 2000) {
-      const backYaw = Math.PI / 4, backPitch = 0.78;
-      state.camYaw += (backYaw - state.camYaw) * 0.02;
-      state.camPitch += (backPitch - state.camPitch) * 0.02;
-    }
     placeCamera();
 
     renderer.render(scene, camera);
@@ -646,7 +703,8 @@ export function createScene(opts) {
     goToProp,
     goToPerson,
     actorPos: () => ({ x: actor.position.x, z: actor.position.z }),
-    stats: () => ({ path: state.path.length, walking: state.walking, camDist: state.camDist }),
+    stats: () => ({ path: state.path.length, walking: state.walking, sitting: state.sitting,
+                    camDist: Math.round(state.camDist), yaw: +state.camYaw.toFixed(2) }),
     // 调试用：查某点是否被标成障碍、以及整行障碍分布
     blockedAt: (x, z) => blocked[cell(z) * COLS + cell(x)] === 1,
     rowOf: (z) => {

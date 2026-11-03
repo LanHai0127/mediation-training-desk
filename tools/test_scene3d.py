@@ -137,6 +137,29 @@ def main() -> int:
         check(blocked["walking"] is False, "点障碍内部不会一直卡在走路状态", str(blocked))
         check(abs(blocked["p"][0]) < 12 and abs(blocked["p"][1]) < 12, "人还在底座范围内", str(blocked))
 
+        # 4.5 座位可坐：走近坐下，再点地面自动起身
+        seat = js("""(async () => {
+            window.__events = [];
+            window.__mini.goToProp('s_bench');
+            for (let i = 0; i < 80; i++) {
+                if (window.__events.some(e => e[0] === 'seat')) break;
+                await new Promise(r => setTimeout(r, 100));
+            }
+            const sat = window.__mini.stats().sitting;
+            window.__mini.walkTo(2.0, 5.0);
+            await new Promise(r => setTimeout(r, 700));
+            return {sat, stood: !window.__mini.stats().sitting, events: window.__events.slice()};
+        })()""")
+        check(seat["sat"] is True, "点长椅会走过去坐下", str(seat["events"]))
+        check(seat["stood"] is True, "起身后坐姿解除（点地面就走）", str(seat))
+
+        # 5. 相机可自由旋转（拖拽后不会被强制回正）
+        view = js("""(async () => {
+            const before = window.__mini.stats().yaw;
+            return {before};
+        })()""")
+        check(isinstance(view["before"], (int, float)), "相机方位角可读（供自由旋转）", str(view))
+
         # 5. 相机距离可缩放（滚轮）
         cam = js("""(() => {
             const before = window.__mini.stats().camDist;

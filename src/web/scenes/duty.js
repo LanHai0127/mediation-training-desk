@@ -6,6 +6,12 @@
 import * as THREE from "./vendor/three.module.min.js";
 import { createScene } from "./scene3d.js";
 
+// 出错时把信息留在 window 上，页面本身不显示任何 UI（探针靠它定位）
+window.__err = "";
+window.addEventListener("error", (e) => {
+  window.__err = (e.message || "error") + " @ " + (e.filename || "") + ":" + (e.lineno || 0);
+});
+
 const M = (color, opts) => new THREE.MeshToonMaterial({ color, ...(opts || {}) });
 
 // 零件工厂：单位 = 世界单位（1 ≈ 0.5m）
@@ -224,12 +230,12 @@ function plant() {
 
 function ceilingLight() {
   const g = new THREE.Group();
-  g.add(b(1.4, 0.06, 0.34, "#e8eef2", 0, 2.9, 0));
+  g.add(b(1.4, 0.1, 0.34, "#e4e9ee", 0, 2.88, 0));          // 灯具底座，紧贴吊顶
   const glow = new THREE.Mesh(
-    new THREE.BoxGeometry(1.3, 0.02, 0.26),
-    M("#fff6e0", { emissive: "#ffdca8", emissiveIntensity: 1.4 })
+    new THREE.BoxGeometry(1.3, 0.03, 0.26),
+    M("#fff6e0", { emissive: "#ffdca8", emissiveIntensity: 1.6 })
   );
-  glow.position.set(0, 2.86, 0);
+  glow.position.set(0, 2.82, 0);
   g.add(glow);
   return g;
 }
@@ -252,9 +258,12 @@ const props = [
       g.add(b(0.34, 0.07, 0.09, "#4b5563", 0, 0.93, -0.2));
       return g;
     } },
-  { id: "s_chair", x: 2.2, z: -3.5, w: 0.7, d: 0.7, build: swivelChair },
-  { id: "s_bench", x: 1.6, z: 2.2, w: 1.8, d: 0.5, build: () => longBench(1.8) },
-  { id: "s_wait", x: -4.6, z: 2.6, w: 1.8, d: 0.5, build: waitingChairs },
+  { id: "s_chair", x: 2.2, z: -3.5, w: 0.7, d: 0.7, seat: true, facing: Math.PI, interact: { x: 2.2, z: -4.3 },
+    build: swivelChair },
+  { id: "s_bench", x: 1.6, z: 2.2, w: 1.8, d: 0.5, seat: true, facing: 0.2, interact: { x: 1.6, z: 2.85 },
+    build: () => longBench(1.8) },
+  { id: "s_wait", x: -4.6, z: 2.6, w: 1.8, d: 0.5, seat: true, facing: 0.1, interact: { x: -4.6, z: 3.2 },
+    build: waitingChairs },
   { id: "s_cab1", x: -5.9, z: -5.35, w: 1.05, d: 0.58, build: cabinet },
   { id: "s_cab2", x: -4.7, z: -5.35, w: 1.05, d: 0.58, build: cabinet },
   { id: "s_water", x: 5.9, z: -5.2, w: 0.55, d: 0.5, build: waterCooler },
@@ -354,9 +363,17 @@ const props = [
       g.add(ball(0.045, "#e3c98d", -0.07, 1.05, 0.36));
       return g;
     } },
-  { id: "s_lampA", x: -2.5, z: -3.2, w: 1.4, d: 0.34, passable: true, build: ceilingLight },
-  { id: "s_lampB", x: 2.5, z: -3.2, w: 1.4, d: 0.34, passable: true, build: ceilingLight },
-  { id: "s_lampC", x: 0.0, z: 2.4, w: 1.4, d: 0.34, passable: true, build: ceilingLight },
+  // 吊顶：沿三面墙一圈 1.2 宽的顶带，灯嵌在里面 —— 单独悬一块灯板会显得"浮着"
+  { id: "s_ceilBack", x: 0, z: -5.95, w: 15.8, d: 0.78, passable: true,
+    build: () => b(15.8, 0.12, 0.78, "#efeade", 0, 3.06, 0) },
+  { id: "s_ceilL", x: -7.55, z: 0, w: 0.78, d: 12.64, passable: true,
+    build: () => b(0.78, 0.12, 12.64, "#efeade", 0, 3.06, 0) },
+  { id: "s_ceilR", x: 7.55, z: 0, w: 0.78, d: 12.64, passable: true,
+    build: () => b(0.78, 0.12, 12.64, "#efeade", 0, 3.06, 0) },
+  { id: "s_lampA", x: -2.6, z: -5.95, w: 1.4, d: 0.3, passable: true, build: ceilingLight },
+  { id: "s_lampB", x: 2.6, z: -5.95, w: 1.4, d: 0.3, passable: true, build: ceilingLight },
+  { id: "s_lampC", x: -7.55, z: 2.4, w: 0.3, d: 1.4, passable: true, build: ceilingLight },
+  { id: "s_lampD", x: 7.55, z: -1.6, w: 0.3, d: 1.4, passable: true, build: ceilingLight },
 
   // 地面小物
   // 房间中部：取号机 + 一米线（派出所的典型陈设，也把空地填起来）
@@ -401,18 +418,6 @@ const props = [
       }
       return g;
     } },
-  { id: "s_stand", x: 2.9, z: 2.3, w: 0.6, d: 0.4, build: () => {
-      const g = new THREE.Group();
-      g.add(b(0.06, 1.1, 0.06, "#8f9aa3", -0.22, 0.55, 0));
-      g.add(b(0.06, 1.1, 0.06, "#8f9aa3", 0.22, 0.55, 0));
-      g.add(b(0.66, 0.02, 0.4, "#8f9aa3", 0, 0.02, 0));
-      const face = b(0.6, 0.8, 0.03, "#f6e3bd", 0, 0.72, 0.06);
-      face.rotation.x = 0.12;
-      g.add(face);
-      g.add(b(0.34, 0.05, 0.01, "#8a3b30", 0, 0.95, 0.09));
-      g.add(b(0.4, 0.03, 0.01, "#3f4a56", 0, 0.82, 0.09));
-      return g;
-    } },
   { id: "s_kidTable", x: -1.0, z: 5.3, w: 0.8, d: 0.5, build: () => {
       const g = new THREE.Group();
       g.add(b(0.8, 0.06, 0.5, "#c9a17a", 0, 0.42, 0));
@@ -449,7 +454,9 @@ const characters = [
     color: "#6b7684", pants: "#3b4552", ambient: true }
 ];
 
-const scene = createScene({
+let scene;
+try {
+scene = createScene({
   mount: document.getElementById("stage"),
   room,
   props,
@@ -463,8 +470,12 @@ const scene = createScene({
   actor: { x: 0.2, z: 4.2 },
   onSpot: (p) => { (window.__events = window.__events || []).push(["spot", p.id]); },
   onPerson: (p) => { (window.__events = window.__events || []).push(["person", p.id]); },
-  onArrived: (p) => { (window.__events = window.__events || []).push(["arrived", +p.x.toFixed(2), +p.z.toFixed(2)]); }
+  onArrived: (p) => { (window.__events = window.__events || []).push(["arrived", +p.x.toFixed(2), +p.z.toFixed(2)]); },
+  onSeat: (p) => { (window.__events = window.__events || []).push(["seat", p.id]); }
 });
+} catch (err) {
+  window.__err = String((err && err.stack) || err);
+}
 
 window.__mini = scene;
 
