@@ -116,7 +116,7 @@ docs/
   答辩脚本.md            8 分钟逐段脚本 + 提问预备
   部署说明.md            只加不改的部署流程（systemd / Docker / nginx）
   提交表.md              17 字段草稿
-  场景与人物建模提示词.md  3D 微缩场景提示词（v2，three.js）
+  场景与人物建模提示词.md  3D 微缩场景提示词（v3，细节密度版）
   archive/               旧版 2.5D 提示词存档
 deploy/                Dockerfile / systemd unit / nginx conf（未部署）
 ```
