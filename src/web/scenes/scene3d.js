@@ -14,7 +14,7 @@ import * as THREE from "./vendor/three.module.min.js";
 const GRID = 0.5;
 const HALF = 9.2;                 // 可站立范围 [-9.2, 9.2]
 const COLS = Math.round((HALF * 2) / GRID);
-const ACTOR_R = 0.45;
+const ACTOR_R = 0.34;
 const SPEED = 3.4;
 const INTERACT = 2.2;
 const EYE_H = 0.9;
@@ -109,6 +109,7 @@ function makePerson(o) {
   }
   g.add(torso, head, hair);
   g.position.set(o.x, 0, o.z);
+  g.userData.sit = sit;
   g.rotation.y = o.facing || 0;
   return g;
 }
@@ -210,22 +211,29 @@ export function createScene(opts) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.98;
+  renderer.toneMappingExposure = 1.04;
   host.appendChild(renderer.domElement);
 
   // 光
-  const hemi = new THREE.HemisphereLight("#eef6ff", "#b8b2a6", 0.42);
-  const sun = new THREE.DirectionalLight("#fff1dc", 2.6);
-  sun.position.set(-9, 15, 9);
+  const hemi = new THREE.HemisphereLight("#dce9f5", "#b8ab98", 0.34);
+  const sun = new THREE.DirectionalLight("#ffd9b0", 3.1);
+  sun.position.set(-11, 13, 10);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.02;
   const sc = sun.shadow.camera;
   sc.left = -14; sc.right = 14; sc.top = 14; sc.bottom = -14; sc.near = 1; sc.far = 48;
-  const fill = new THREE.DirectionalLight("#bcd7ea", 0.85);
+  const fill = new THREE.DirectionalLight("#b6d3ea", 0.55);
   fill.position.set(11, 7, -10);
   scene.add(hemi, sun, fill);
+
+  // 室内的灯：只加在场景声明的 lamp 位置，制造"暖光斑"，和冷环境拉开层次
+  for (const lp of opts.lamps || []) {
+    const pl = new THREE.PointLight(lp.color || "#ffd9a8", lp.intensity || 1.4, lp.distance || 7, 2);
+    pl.position.set(lp.x, lp.y || 2.6, lp.z);
+    scene.add(pl);
+  }
 
   // 底座
   const base = box(20, 0.55, 20, toon(opts.baseColor || COL.base), 0, -0.275, 0);
@@ -297,6 +305,17 @@ export function createScene(opts) {
     holder.add(mesh);
     mesh.traverse((o) => { if (o.isMesh) { o.userData.propId = p.id; } });
     scene.add(holder);
+
+    // 接触阴影：物件脚下一片很淡的暗色，缺了它整个模型会"浮"起来
+    if (!p.passable && p.w && p.d) {
+      const ao = new THREE.Mesh(
+        new THREE.PlaneGeometry(p.w + 0.22, p.d + 0.22),
+        new THREE.MeshBasicMaterial({ color: "#2b3138", transparent: true, opacity: 0.085, depthWrite: false })
+      );
+      ao.rotation.x = -Math.PI / 2;
+      ao.position.set(p.x, 0.006, p.z);
+      scene.add(ao);
+    }
     pickable.add(holder);
     propById.set(p.id, { data: p, obj: holder, baseY: 0 });
   }
@@ -305,10 +324,12 @@ export function createScene(opts) {
   const people = new Map();
   for (const c of opts.characters || []) {
     const g = makePerson(c);
-    g.traverse((o) => { if (o.isMesh) { o.userData.personId = c.id; } });
+    if (!c.ambient) {
+      g.traverse((o) => { if (o.isMesh) { o.userData.personId = c.id; } });
+      pickable.add(g);
+      people.set(c.id, g);
+    }
     scene.add(g);
-    pickable.add(g);
-    people.set(c.id, g);
   }
 
   // 主角
@@ -329,7 +350,7 @@ export function createScene(opts) {
   const blocked = buildGrid(opts.obstacles || opts.props || []);
   const state = {
     path: [], target: null, pending: null, walking: false, phase: 0,
-    camYaw: Math.PI / 4, camPitch: 0.74, camDist: 26,
+    camYaw: Math.PI / 4, camPitch: 0.76, camDist: 24,
     focus: new THREE.Vector3(actor.position.x, EYE_H, actor.position.z)
   };
 
@@ -575,7 +596,9 @@ export function createScene(opts) {
     // 站位人物呼吸
     people.forEach((g, id) => {
       const ph = (id.charCodeAt(1) || 0) * 0.7;
-      g.position.y = Math.sin(t * 1.3 + ph) * 0.008;
+      // 坐着的人整体抬到椅面高度（0.42），否则看起来像蹲在半空
+      const baseY = g.userData.sit ? 0.42 : 0;
+      g.position.y = baseY + Math.sin(t * 1.3 + ph) * 0.008;
     });
 
     // 灯微呼吸
@@ -594,7 +617,7 @@ export function createScene(opts) {
     state.focus.y += (EYE_H - state.focus.y) * 0.1;
 
     if (performance.now() - idleSince > 2000) {
-      const backYaw = Math.PI / 4, backPitch = 0.72;
+      const backYaw = Math.PI / 4, backPitch = 0.78;
       state.camYaw += (backYaw - state.camYaw) * 0.02;
       state.camPitch += (backPitch - state.camPitch) * 0.02;
     }
@@ -624,6 +647,13 @@ export function createScene(opts) {
     goToPerson,
     actorPos: () => ({ x: actor.position.x, z: actor.position.z }),
     stats: () => ({ path: state.path.length, walking: state.walking, camDist: state.camDist }),
+    // 调试用：查某点是否被标成障碍、以及整行障碍分布
+    blockedAt: (x, z) => blocked[cell(z) * COLS + cell(x)] === 1,
+    rowOf: (z) => {
+      const r = cell(z), out = [];
+      for (let c = 0; c < COLS; c++) { out.push(blocked[r * COLS + c] ? 1 : 0); }
+      return out.join("");
+    },
     setActor: (x, z) => { actor.position.set(x, 0, z); state.focus.set(x, EYE_H, z); placeCamera(); },
     resize
   };
