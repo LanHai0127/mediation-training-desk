@@ -19,6 +19,9 @@
     </div>
   </div>
   <div class="top-right">
+    <button class="phone-btn" id="btnPhone" aria-label="打开手机记事本">
+      <span class="pglyph" aria-hidden="true">📱</span> 手机 <i class="pbadge" id="noteBadge">0</i>
+    </button>
     <span class="pill" id="llmPill">模型：检测中…</span>
     <span class="pill ghost" id="stagePill">v0.3 · 演示版</span>
   </div>
@@ -110,6 +113,112 @@
     </div>
   </aside>
 </main>
+
+
+<!-- 手机：记事本、地点、现场素材、警情简报、电话、须知。
+     这是训练的一部分——记录要自己写，系统不替你记。 -->
+<div class="phone-overlay" id="phoneOverlay" hidden>
+  <div class="phone" role="dialog" aria-modal="true" aria-label="民警手机">
+    <div class="phone-status">
+      <span id="phTime">--:--</span>
+      <span class="right">执勤终端 · 电量 76%</span>
+    </div>
+
+    <div class="phone-body">
+      <!-- 桌面 -->
+      <div class="phone-page" id="ppHome">
+        <div class="home-clock">
+          <div class="hm" id="homeTime">--:--</div>
+          <div class="hd">城西派出所（虚构）· 执勤手机</div>
+        </div>
+        <div class="home-case" id="homeCase"></div>
+        <button class="home-note" id="homeNote"></button>
+        <div class="app-grid">
+          <button class="app" data-app="places"><span class="ag">🗺️</span><span>地点</span></button>
+          <button class="app" data-app="notes"><span class="ag">📝</span><span>记事本</span>
+            <i class="app-count" id="appNoteCount">0</i></button>
+          <button class="app" data-app="facts"><span class="ag">🗂️</span><span>现场素材</span></button>
+          <button class="app" data-app="brief"><span class="ag">📄</span><span>警情简报</span></button>
+          <button class="app" data-app="calls"><span class="ag">📞</span><span>电话</span></button>
+          <button class="app" data-app="guide"><span class="ag">📖</span><span>须知</span></button>
+        </div>
+        <div class="home-tip" id="homeTip"></div>
+        <div class="home-progress" id="homeProgress"></div>
+      </div>
+
+      <!-- 地点 -->
+      <div class="phone-page" id="ppPlaces" hidden>
+        <div class="phone-head">
+          <button class="back" data-back="1">‹ 桌面</button>
+          <span class="ptitle">地点</span><span class="psub">点一处过去</span>
+        </div>
+        <div class="p-list" id="placesList"></div>
+      </div>
+
+      <!-- 记事本 -->
+      <div class="phone-page" id="ppNotes" hidden>
+        <div class="phone-head">
+          <button class="back" data-back="1">‹ 桌面</button>
+          <span class="ptitle">记事本</span><span class="psub">诉求要自己写下来</span>
+        </div>
+        <div class="p-list" id="notesList"></div>
+        <div class="note-editor" id="noteEditor" hidden>
+          <textarea id="noteText" maxlength="600" placeholder="写下你听到的诉求、底线、可给的台阶…"></textarea>
+          <div class="note-tools">
+            <button class="mini" id="noteMaterial">插入素材</button>
+            <span class="grow"></span>
+            <button class="mini" id="noteCancel">取消</button>
+            <button class="mini primary" id="noteSave">保存</button>
+          </div>
+        </div>
+        <div class="note-new-wrap">
+          <button class="note-new" id="noteNew">＋ 新写一条</button>
+        </div>
+      </div>
+
+      <!-- 现场素材 -->
+      <div class="phone-page" id="ppFacts" hidden>
+        <div class="phone-head">
+          <button class="back" data-back="1">‹ 桌面</button>
+          <span class="ptitle">现场素材</span><span class="psub" id="factsSub"></span>
+        </div>
+        <div class="p-list" id="factsList"></div>
+      </div>
+
+      <!-- 警情简报 -->
+      <div class="phone-page" id="ppBrief" hidden>
+        <div class="phone-head">
+          <button class="back" data-back="1">‹ 桌面</button>
+          <span class="ptitle">警情简报</span>
+        </div>
+        <div class="p-list" id="briefBody"></div>
+      </div>
+
+      <!-- 电话 -->
+      <div class="phone-page" id="ppCalls" hidden>
+        <div class="phone-head">
+          <button class="back" data-back="1">‹ 桌面</button>
+          <span class="ptitle">电话</span><span class="psub">未接通的功能会明说</span>
+        </div>
+        <div class="p-list" id="callsList"></div>
+      </div>
+
+      <!-- 须知 -->
+      <div class="phone-page" id="ppGuide" hidden>
+        <div class="phone-head">
+          <button class="back" data-back="1">‹ 桌面</button>
+          <span class="ptitle">操作须知</span>
+        </div>
+        <div class="p-list" id="guideBody"></div>
+      </div>
+    </div>
+
+    <div class="phone-foot">
+      <button id="phHome">桌面</button>
+      <button id="phClose">收起手机</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
 

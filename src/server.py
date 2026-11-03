@@ -382,6 +382,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._dialogue(data)
             if path == "/api/submit":
                 return self._submit(data)
+            if path == "/api/notes":
+                return self._notes(data)
             return self._json({"error": "not found"}, 404)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
@@ -499,6 +501,25 @@ class Handler(BaseHTTPRequestHandler):
         res["view"] = s.view()
         self._json(res)
 
+    def _notes(self, data: dict[str, Any]) -> None:
+        """记事本：增 / 改 / 删 / 列。内容只存在这次训练的内存里，不落库、不进日志正文。"""
+        s = self._session_of(str(data.get("sessionId") or ""))
+        if not s:
+            return self._json({"error": "session not found"}, 404)
+        op = str(data.get("op") or "list")
+        with SESS_LOCK:
+            if op == "add":
+                res = s.add_note(str(data.get("text") or ""))
+            elif op == "update":
+                res = s.update_note(str(data.get("id") or ""), str(data.get("text") or ""))
+            elif op == "delete":
+                res = s.delete_note(str(data.get("id") or ""))
+            else:
+                res = {"ok": True, "message": ""}
+            res["notes"] = [dict(n) for n in s.notes]
+        res["view"] = s.view()
+        self._json(res)
+
     def _submit(self, data: dict[str, Any]) -> None:
         """提交方案 / 依法转办。判定只吃 plan 与客观状态，不吃对话文本。"""
         s = self._session_of(str(data.get("sessionId") or ""))
@@ -512,6 +533,7 @@ class Handler(BaseHTTPRequestHandler):
         with SESS_LOCK:
             res = s.submit(plan, mode)
         res["report"] = s.report
+        res["notes"] = [dict(n) for n in s.notes]
         res["view"] = s.view()
         self._json(res)
 

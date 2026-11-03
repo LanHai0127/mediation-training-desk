@@ -53,9 +53,13 @@ def call(path: str, body=None):
         return 0, {"error": str(e)}
 
 
-def new_session(cid: str = "case_01_noise") -> str:
+def new_session(cid: str = "case_01_noise", with_note: bool = True) -> str:
+    """建会话；默认顺手写一条笔记——提交有「记事本不许空」的门槛，不写就测不到后面的东西。"""
     _, d = call("/api/session", {"caseId": cid})
-    return (d.get("view") or {}).get("sessionId", "")
+    sid = (d.get("view") or {}).get("sessionId", "")
+    if sid and with_note:
+        call("/api/notes", {"sessionId": sid, "op": "add", "text": "测试用：先记一条"})
+    return sid
 
 
 def main() -> int:

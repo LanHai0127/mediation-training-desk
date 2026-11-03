@@ -103,6 +103,7 @@ def build_report(session: Any, result: dict[str, Any]) -> dict[str, Any]:
             "factsSeen": len(session.facts_seen or []),
             "processScore": process.get("score", 0),
         },
+        "notes": [{"text": n.get("text", "")} for n in (getattr(session, "notes", None) or [])],
         "missingFacts": result.get("missingFacts") or [],
         "auditLines": len(result.get("audit") or []),
         "footer": FOOTER,
@@ -126,6 +127,11 @@ def report_text(rep: dict[str, Any]) -> str:
         lines.append("- %s：%.2f ｜ 你选了：%s" % (r["name"], r["quality"], r["chosen"]))
         if r["gap"] > 0.2 and r["best"]:
             lines.append("    更好的做法：%s" % r["best"])
+    if rep.get("notes"):
+        lines.append("")
+        lines.append("【我的笔记】")
+        for i, n in enumerate(rep["notes"], 1):
+            lines.append("%d. %s" % (i, n["text"]))
     if rep["untouched"]:
         lines.append("")
         lines.append("【全程没碰到的诉求】")

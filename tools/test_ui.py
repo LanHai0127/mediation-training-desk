@@ -115,6 +115,26 @@ def main() -> int:
         title = js("document.getElementById('caseTitle').textContent")
         check("狗" in (title or ""), "选案参数生效（切到第二个案子）", title)
 
+        # ---------- 2.5 手机记事本：打开 → 新写 → 保存 → 徽标 +1
+        js("document.getElementById('btnPhone').click(); true")
+        time.sleep(0.4)
+        check(js("!document.getElementById('phoneOverlay').hidden") is True, "手机能打开")
+        check(js("(document.getElementById('ppHome').hidden === false)") is True, "手机默认停在桌面")
+        js("document.querySelector('.app[data-app=\"notes\"]').click(); true")
+        time.sleep(0.3)
+        js("document.getElementById('noteNew').click(); document.getElementById('noteText').value="
+           "'测试笔记：他到底要什么，最不肯让的是什么'; document.getElementById('noteSave').click(); true")
+        time.sleep(1.0)
+        noted = js("(() => ({count: document.querySelectorAll('#notesList .p-item').length,"
+                   " badge: document.getElementById('noteBadge').textContent,"
+                   " api: (window.__app.notes||[]).length}))()")
+        check(noted["api"] == 1, "笔记写进会话（后端确认）", str(noted))
+        check(noted["badge"] == "1", "顶栏徽标变成 1", str(noted))
+        check(noted["count"] >= 1, "记事本列表里能看到这条", str(noted))
+        js("document.getElementById('phClose').click(); true")
+        time.sleep(0.3)
+        check(js("document.getElementById('phoneOverlay').hidden") is True, "手机能收起")
+
         # ---------- 3. 没选完就提交：弹层不许出现，未选维度要标红
         # 按钮在首屏下面，先滚进视口再点 —— 视口外的坐标点不到，那样测的就不是应用了
         js("document.getElementById('btnAgree').scrollIntoView({block:'center'}); true")

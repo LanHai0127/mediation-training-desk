@@ -93,6 +93,9 @@ class Session:
         self.judge = MediationJudge(case)
         # 报警记录是出警时就在手上的，不算"现场发现"；其余事实必须自己走过去看
         self.facts_seen: list[str] = [f["id"] for f in (case.get("facts") or []) if f["id"] == "f_alarm"]
+        # 记事本：只存自己写的话。系统不会替你记——这是训练的一部分，也是"提交前必须有记录"的门槛。
+        self.notes: list[dict[str, Any]] = []
+        self.note_seq = 0
         self.result: dict[str, Any] | None = None
         self.report: dict[str, Any] | None = None
         self.scene_id = (case.get("scenes") or [{}])[0].get("id", "")
@@ -107,6 +110,7 @@ class Session:
             "sceneId": self.scene_id,
             "seen": self.seen,
             "factsSeen": self.facts_seen,
+            "notes": [dict(n) for n in self.notes],
             "talked": self.talked,
             "hasResult": bool(self.result),
             "parties": {pid: {"trust": s["trust"], "mood": s["mood"]}
@@ -125,9 +129,47 @@ class Session:
                     return {"ok": True, "spot": sp}
         return {"ok": False, "error": "没有这个点位"}
 
+    # ------------------------------------------------------------ 记事本
+    def add_note(self, text: str) -> dict[str, Any]:
+        text = (text or "").strip()[:600]
+        if not text:
+            return {"ok": False, "message": "笔记是空的。"}
+        self.note_seq += 1
+        note = {"id": "N%d" % self.note_seq, "text": text,
+                "at": round(time.time() - self.created, 1)}
+        self.notes.append(note)
+        return {"ok": True, "message": "已写入记事本。", "note": dict(note)}
+
+    def update_note(self, note_id: str, text: str) -> dict[str, Any]:
+        text = (text or "").strip()[:600]
+        if not text:
+            return {"ok": False, "message": "笔记是空的。"}
+        for n in self.notes:
+            if n["id"] == note_id:
+                n["text"] = text
+                n["at"] = round(time.time() - self.created, 1)
+                return {"ok": True, "message": "笔记已更新。", "note": dict(n)}
+        return {"ok": False, "message": "没有这条笔记。"}
+
+    def delete_note(self, note_id: str) -> dict[str, Any]:
+        before = len(self.notes)
+        self.notes = [n for n in self.notes if n["id"] != note_id]
+        if len(self.notes) == before:
+            return {"ok": False, "message": "没有这条笔记。"}
+        return {"ok": True, "message": "已删除。"}
+
     # ------------------------------------------------------------ 判定与复盘
     def submit(self, plan: dict[str, str], mode: str = "agreement") -> dict[str, Any]:
         """提交方案。入参只有方案与模式；对话文本一个字都不进判定。"""
+        # 门槛：记事本空着不许交方案。系统不替你记诉求，这是训练的一部分。
+        if not self.notes:
+            return {
+                "ok": False,
+                "need": "notes",
+                "message": "记事本还是空的——各方到底要什么、你打算怎么给，得你自己写下来。"
+                           "先打开手机记一条，再交方案。",
+                "notes": [],
+            }
         ctx = {
             "talked": [dict(t) for t in self.talked],
             "oversteps": self.dialogue.oversteps,
@@ -136,7 +178,7 @@ class Session:
         }
         res = self.judge.evaluate(plan or {}, ctx, mode if mode in ("agreement", "refer") else "agreement")
         res["context"] = {"factsSeen": list(self.facts_seen), "oversteps": ctx["oversteps"],
-                          "trust": ctx["trust"]}
+                          "trust": ctx["trust"], "notes": len(self.notes)}
         self.result = res
         self.report = build_report(self, res)
         return res

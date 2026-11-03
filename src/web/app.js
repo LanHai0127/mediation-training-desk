@@ -85,6 +85,9 @@
       return api("/api/session", { caseId: cs.id });
     }).then(function (d) {
       state.sessionId = d.view.sessionId;
+      state.view = d.view;
+      state.notes = d.view.notes || [];
+      updateNoteBadge();
       state.sceneId = d.view.sceneId || (state.caseData.scenes[0] || {}).id;
       mountScene(state.sceneId);
       renderParties();
@@ -194,7 +197,9 @@
 
   function switchScene(sceneId) {
     if (sceneId === state.sceneId) { return; }
-    api("/api/scene", { sessionId: state.sessionId, sceneId: sceneId }).catch(function () {});
+    api("/api/scene", { sessionId: state.sessionId, sceneId: sceneId })
+      .then(function (d) { if (d && d.view) { state.view = d.view; } })
+      .catch(function () {});
     mountScene(sceneId);
   }
 
@@ -202,6 +207,7 @@
   function onSpot(spot) {
     if (spot.goto) { switchScene(spot.goto); return; }
     api("/api/look", { sessionId: state.sessionId, spotId: spot.id }).then(function (d) {
+      if (d.view) { state.view = d.view; }
       $("hint").textContent = spot.label;
       toast(spot.label + "：" + (spot.look || ""));
       if (spot.fact && state.caseData.facts) {
@@ -332,6 +338,7 @@
       var note = "";
       if (d.overstep) { note = "⚠ 越界承诺：你答应了无权答应或做不到的事"; }
       if (d.reveal) { note = (note ? note + " · " : "") + "（单独谈话 · 他说出了实情）" + d.reveal; }
+      if (d.view) { state.view = d.view; }
       push("them", d.reply, note);
       state.meters = state.meters || {};
       state.meters[state.partyId] = d.state;
@@ -446,6 +453,11 @@
     active.textContent = "判定中…";
     api("/api/submit", { sessionId: state.sessionId, plan: state.plan, mode: mode })
       .then(function (res) {
+        if (res && res.ok === false && res.need === "notes") {
+          toast(res.message || "记事本还是空的，先写一条。", "bad");
+          openPhone("notes");
+          return;
+        }
         state.reportText = "";
         state.hasReport = true;
         showReport(res);
@@ -519,6 +531,12 @@
       "<h4>四维</h4><div class='dims'>" + dims + "</div>" +
       "<h4>关键失误</h4><ol class='top3'>" + top3 + "</ol>" +
       "<h4>全程没碰到的诉求</h4><ul class='plain'>" + untouched + "</ul>" +
+      "<h4>我的笔记 <span class='note-count'>" + ((rep.notes || []).length) + " 条</span></h4>" +
+      (((rep.notes || []).length)
+        ? "<ol class='notes-rep'>" + rep.notes.map(function (n) {
+            return "<li>" + esc(n.text) + "</li>";
+          }).join("") + "</ol>"
+        : "<p class='proc'>这次没记。走访记的东西，下次自己看得见。</p>") +
       "<h4>过程</h4>" +
       "<div class='proc-grid'>" +
         procCell("分别谈话", pr.separateTalk ? "有 · " + pr.separateCount + " 次" : "没有", !pr.separateTalk) +
@@ -621,6 +639,292 @@
     try { document.execCommand("copy"); $("hint").textContent = "复盘文本已复制。"; } catch (e) { /* 忽略 */ }
     document.body.removeChild(ta);
   }
+
+  // ------------------------------------------------------------ 手机
+  var PHONE_PAGES = { home: "ppHome", places: "ppPlaces", notes: "ppNotes",
+                      facts: "ppFacts", brief: "ppBrief", calls: "ppCalls", guide: "ppGuide" };
+
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function phoneClock() {
+    var d = new Date();
+    var t = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    if ($("phTime")) { $("phTime").textContent = t; }
+    if ($("homeTime")) { $("homeTime").textContent = t; }
+  }
+
+  function updateNoteBadge() {
+    var n = (state.notes || []).length;
+    var b = $("noteBadge"), c = $("appNoteCount");
+    if (b) { b.textContent = n; b.classList.toggle("zero", n === 0); }
+    if (c) { c.textContent = n; c.classList.toggle("zero", n === 0); }
+  }
+
+  function openPhone(page) {
+    $("phoneOverlay").hidden = false;
+    document.body.classList.add("modal-open");
+    phoneClock();
+    showPhonePage(page || "home");
+  }
+
+  function closePhone() {
+    if (state.phoneEditing && ($("noteText").value || "").trim()) {
+      toast("编辑器里还有没保存的笔记");
+      showPhonePage("notes");
+      $("noteText").focus();
+      return;
+    }
+    $("phoneOverlay").hidden = true;
+    document.body.classList.remove("modal-open");
+    state.phoneEditing = null;
+    $("noteEditor").hidden = true;
+  }
+
+  function showPhonePage(name) {
+    if (!PHONE_PAGES[name]) { name = "home"; }
+    Object.keys(PHONE_PAGES).forEach(function (k) {
+      var el = $(PHONE_PAGES[k]);
+      if (el) { el.hidden = (k !== name); }
+    });
+    state.phonePage = name;
+    if (name === "home") { renderPhoneHome(); }
+    if (name === "places") { renderPlaces(); }
+    if (name === "notes") { renderNotes(); }
+    if (name === "facts") { renderFacts(); }
+    if (name === "brief") { renderBrief(); }
+    if (name === "calls") { renderCalls(); }
+    if (name === "guide") { renderGuide(); }
+  }
+
+  function renderPhoneHome() {
+    var c = state.caseData || {};
+    var alarm = c.alarm || {};
+    $("homeCase").innerHTML =
+      "<b>" + esc(c.title || "") + "</b>" +
+      "<span class='tag'>" + esc((c.meta || {}).difficulty || "") + "</span>" +
+      esc(alarm.time || "") + "<br>" + esc((c.meta || {}).brief || "");
+    var notes = state.notes || [];
+    var last = notes.length ? notes[notes.length - 1].text : "";
+    $("homeNote").innerHTML = notes.length
+      ? "<b>最近一条笔记</b><span class='pre'>" + esc(last) + "</span>"
+      : "<b>记事本还是空的</b><span class='empty'>交方案前必须写一条：他要什么、最不肯让什么。</span>";
+    var seen = (state.view && state.view.seen) || [];
+    var facts = Object.keys(state.facts || {}).length;
+    var talked = ((state.view && state.view.talked) || []).length;
+    var tip = "";
+    if (!seen.length) {
+      tip = "还没去过现场。点「地点」过去，先看三处：沙发、茶几、鞋柜。";
+    } else if (!notes.length) {
+      tip = "现场看过了，记事本还空着。写一条：他要什么、最不肯让什么。";
+    } else if (!(state.plan && Object.keys(state.plan).length)) {
+      tip = "记录有了。可以组方案了：四个维度各选一条。";
+    }
+    $("homeTip").textContent = tip;
+    $("homeTip").classList.toggle("empty", !tip);
+    $("homeProgress").innerHTML =
+      "看过 " + seen.length + " 处 · 记下 " + facts + " 条事实 · 谈过 " + talked +
+      " 人 · 笔记 " + (state.notes || []).length + " 条";
+  }
+
+  function renderPlaces() {
+    var box = $("placesList");
+    box.innerHTML = "";
+    (state.caseData.scenes || []).forEach(function (sc) {
+      var cur = sc.id === state.sceneId;
+      var d = document.createElement("div");
+      d.className = "p-item" + (cur ? " active" : "");
+      d.innerHTML = "<b>" + esc(sc.name) + "</b>" +
+        "<span>" + (sc.setting === "room" ? "室内" : "室外") + " · " + (sc.spots || []).length + " 个点位</span>" +
+        (cur ? "<div class='meta'>你现在在这里</div>" : "");
+      if (!cur) {
+        d.addEventListener("click", function () {
+          switchScene(sc.id);
+          closePhone();
+          toast("到了「" + sc.name + "」");
+        });
+      }
+      box.appendChild(d);
+    });
+  }
+
+  function renderNotes() {
+    var box = $("notesList");
+    box.innerHTML = "";
+    if (!(state.notes || []).length) {
+      box.innerHTML = "<div class='p-empty'>还没有写。<br>先记一条：他到底要什么、最不肯让的是什么。</div>";
+    }
+    (state.notes || []).forEach(function (n, i) {
+      var d = document.createElement("div");
+      d.className = "p-item";
+      d.innerHTML = "<b>" + (i + 1) + ". " + esc(n.text) + "</b>" +
+        "<div class='row-actions'><button class='row-btn' data-act='edit'>修改</button>" +
+        "<button class='row-btn' data-act='del'>删除</button></div>";
+      d.querySelector("[data-act='edit']").addEventListener("click", function () { startEdit(n); });
+      d.querySelector("[data-act='del']").addEventListener("click", function () { deleteNote(n.id); });
+      box.appendChild(d);
+    });
+    updateNoteBadge();
+  }
+
+  function startEdit(note) {
+    state.phoneEditing = note ? { id: note.id, text: note.text } : { id: "", text: "" };
+    $("noteEditor").hidden = false;
+    $("noteText").value = note ? note.text : "";
+    $("noteText").focus();
+    $("noteText").setSelectionRange(999, 999);
+  }
+
+  function saveNote() {
+    var text = ($("noteText").value || "").trim();
+    if (!text) { toast("笔记是空的", "bad"); $("noteText").focus(); return; }
+    var editing = state.phoneEditing || {};
+    api("/api/notes", {
+      sessionId: state.sessionId,
+      op: editing.id ? "update" : "add",
+      id: editing.id || "",
+      text: text
+    }).then(function (d) {
+      state.notes = d.notes || [];
+      state.phoneEditing = null;
+      $("noteEditor").hidden = true;
+      $("noteText").value = "";
+      renderNotes();
+      renderPhoneHome();
+      toast(d.message || "已保存");
+    }).catch(function (e) {
+      toast("保存失败：" + e.message, "bad");
+    });
+  }
+
+  function deleteNote(id) {
+    api("/api/notes", { sessionId: state.sessionId, op: "delete", id: id })
+      .then(function (d) {
+        state.notes = d.notes || [];
+        renderNotes();
+        renderPhoneHome();
+        toast("已删除");
+      }).catch(function (e) { toast("删除失败：" + e.message, "bad"); });
+  }
+
+  // 插入素材：把看过的事实直接写进笔记，省得手打
+  function openMaterialPicker() {
+    var host = $("noteEditor");
+    var old = document.getElementById("materialPicker");
+    if (old) { old.remove(); }
+    var list = (state.caseData.facts || []).filter(function (f) {
+      return (state.view && (state.view.factsSeen || []).indexOf(f.id) >= 0) || f.id === "f_alarm";
+    });
+    var box = document.createElement("div");
+    box.id = "materialPicker";
+    box.className = "p-list";
+    box.style.marginTop = "8px";
+    if (!list.length) {
+      box.innerHTML = "<div class='p-empty'>还没有可插入的素材。<br>先去现场看几处。</div>";
+    }
+    list.forEach(function (f) {
+      var d = document.createElement("div");
+      d.className = "p-item";
+      d.innerHTML = "<b>" + esc(f.title) + "</b><span>" + esc(f.text) + "</span>";
+      d.addEventListener("click", function () {
+        var ta = $("noteText");
+        ta.value = (ta.value ? ta.value.replace(/\s*$/, "") + "\n" : "") + "〔" + f.title + "〕" + f.text;
+        box.remove();
+        ta.focus();
+      });
+      box.appendChild(d);
+    });
+    host.appendChild(box);
+  }
+
+  function renderFacts() {
+    var box = $("factsList");
+    var seen = (state.view && state.view.factsSeen) || [];
+    var all = state.caseData.facts || [];
+    $("factsSub").textContent = "已掌握 " + seen.length + " / " + all.length;
+    box.innerHTML = "";
+    all.forEach(function (f) {
+      var got = seen.indexOf(f.id) >= 0;
+      var d = document.createElement("div");
+      d.className = "p-item" + (got ? "" : " done");
+      d.innerHTML = "<b>" + esc(f.title) + "</b><span>" +
+        (got ? esc(f.text) : "还没掌握。走到对应点位看一眼。") + "</span>";
+      box.appendChild(d);
+    });
+  }
+
+  function renderBrief() {
+    var a = state.caseData.alarm || {};
+    var m = state.caseData.meta || {};
+    $("briefBody").innerHTML =
+      "<div class='p-item'><b>报警记录</b><span>" + esc(a.text || "暂无") + "</span>" +
+      "<div class='meta'>" + esc(a.time || "") + " · " + esc(a.source || "") + "</div></div>" +
+      "<div class='p-item'><b>纠纷类型</b><span>" + esc(m.subtitle || "") + "</span>" +
+      "<div class='meta'>" + esc(m.brief || "") + "</div></div>";
+  }
+
+  function renderCalls() {
+    var box = $("callsList");
+    box.innerHTML =
+      "<div class='p-empty'>电话通道还没接进来。<br>" +
+      "下一版会做：接警、回拨当事人、通话记录，通话里的承诺一样计入越界判定。</div>";
+    (state.caseData.partyOrder || []).forEach(function (pid) {
+      var p = state.caseData.parties[pid];
+      if (!p) { return; }
+      var d = document.createElement("div");
+      d.className = "p-item done";
+      d.innerHTML = "<b>" + esc(p.name) + "</b><span>" + esc(p.role) + "</span>" +
+        "<div class='meta'>未接入拨号</div>";
+      box.appendChild(d);
+    });
+  }
+
+  function renderGuide() {
+    $("guideBody").innerHTML = [
+      ["怎么走", "点地面走过去；点物件查看。走到物件旁边才能看清。"],
+      ["怎么谈", "先在右侧选当事人；建议用「单独谈」开口，面对面留给最后。"],
+      ["记事本", "诉求、底线、你能给的台阶，自己写下来。空着不能交方案。"],
+      ["交方案", "四个维度各选一条，再决定「出协议」还是「依法转办」。"],
+      ["两种都对", "谈不成也是合格结局：依法告知并转办，比硬凑一份协议负责。"],
+      ["这是什么", "教学演练工具，所有案件与人物均为虚构，不构成执法意见。"]
+    ].map(function (row) {
+      return "<div class='p-item'><b>" + row[0] + "</b><span>" + row[1] + "</span></div>";
+    }).join("");
+  }
+
+  // 手机事件
+  $("btnPhone").addEventListener("click", function () { openPhone("home"); });
+  $("homeNote").addEventListener("click", function () {
+    var editing = true;
+    openPhone("notes");
+    if (!(state.notes || []).length && editing) { startEdit(null); }
+  });
+  $("phClose").addEventListener("click", closePhone);
+  $("phHome").addEventListener("click", function () { showPhonePage("home"); });
+  Array.prototype.forEach.call(document.querySelectorAll(".app[data-app]"), function (b) {
+    b.addEventListener("click", function () { showPhonePage(b.dataset.app); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-back]"), function (b) {
+    b.addEventListener("click", function () { showPhonePage("home"); });
+  });
+  $("noteNew").addEventListener("click", function () { startEdit(null); });
+  $("noteSave").addEventListener("click", saveNote);
+  $("noteCancel").addEventListener("click", function () {
+    state.phoneEditing = null;
+    $("noteEditor").hidden = true;
+    $("noteText").value = "";
+  });
+  $("noteMaterial").addEventListener("click", openMaterialPicker);
+  $("noteText").addEventListener("keydown", function (ev) {
+    if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter") { ev.preventDefault(); saveNote(); }
+  });
+  $("phoneOverlay").addEventListener("click", function (ev) {
+    if (ev.target === $("phoneOverlay")) { closePhone(); }
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape") { return; }
+    if (!$("phoneOverlay").hidden) { closePhone(); return; }
+  });
+  setInterval(phoneClock, 30000);
 
   // ------------------------------------------------------------ 模式切换
   Array.prototype.forEach.call(document.querySelectorAll("[data-channel]"), function (b) {
