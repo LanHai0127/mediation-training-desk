@@ -118,10 +118,12 @@ function makePerson(o) {
 function buildGrid(obstacles) {
   const blocked = new Uint8Array(COLS * COLS);
   const mark = (x0, z0, x1, z1) => {
+    // 两端都用 floor：用 ceil 会把"刚好在边界外"的那一格也圈进来，
+    // 每件家具因此多出半米宽的"幽灵墙"——通道被压窄、目标点判定不可达。
     const c0 = Math.max(0, Math.floor((x0 + HALF) / GRID));
-    const c1 = Math.min(COLS - 1, Math.ceil((x1 + HALF) / GRID));
+    const c1 = Math.min(COLS - 1, Math.floor((x1 + HALF) / GRID));
     const r0 = Math.max(0, Math.floor((z0 + HALF) / GRID));
-    const r1 = Math.min(COLS - 1, Math.ceil((z1 + HALF) / GRID));
+    const r1 = Math.min(COLS - 1, Math.floor((z1 + HALF) / GRID));
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) { blocked[r * COLS + c] = 1; }
     }
@@ -572,7 +574,13 @@ export function createScene(opts) {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ source: "mini3d", type, payload }, "*");
     }
-    const cb = { "spot:click": opts.onSpot, "person:click": opts.onPerson, "actor:arrived": opts.onArrived }[type];
+    const cb = {
+      "spot:click": opts.onSpot,
+      "person:click": opts.onPerson,
+      "actor:arrived": opts.onArrived,
+      "actor:seat": opts.onSeat,
+      "actor:blocked": opts.onBlocked
+    }[type];
     if (cb) { cb(payload); }
   }
 
@@ -600,10 +608,10 @@ export function createScene(opts) {
             state.sitting = true;
             actor.rotation.y = pending.facing || actor.rotation.y;
             fire("actor:seat", { id: pending.id });
-            return;
+          } else {
+            fire("actor:arrived", { x: actor.position.x, z: actor.position.z });
+            if (pending) { fire(pending.type === "spot" ? "spot:click" : "person:click", { id: pending.id }); }
           }
-          fire("actor:arrived", { x: actor.position.x, z: actor.position.z });
-          if (pending) { fire(pending.type === "spot" ? "spot:click" : "person:click", { id: pending.id }); }
         }
       } else {
         const step = Math.min(dist, SPEED * dt);
@@ -704,9 +712,25 @@ export function createScene(opts) {
     goToPerson,
     actorPos: () => ({ x: actor.position.x, z: actor.position.z }),
     stats: () => ({ path: state.path.length, walking: state.walking, sitting: state.sitting,
-                    camDist: Math.round(state.camDist), yaw: +state.camYaw.toFixed(2) }),
+                    camDist: Math.round(state.camDist), yaw: +state.camYaw.toFixed(2),
+                    actorY: +actor.position.y.toFixed(3),
+                    actorXZ: [+actor.position.x.toFixed(2), +actor.position.z.toFixed(2)] }),
     // 调试用：查某点是否被标成障碍、以及整行障碍分布
     blockedAt: (x, z) => blocked[cell(z) * COLS + cell(x)] === 1,
+    debugPath: (x, z) => {
+      const from = [cell(actor.position.x), cell(actor.position.z)];
+      const goal = freeNear(blocked, cell(x), cell(z));
+      const start = freeNear(blocked, ...from) || from;
+      const cells = goal ? astar(blocked, start, goal) : null;
+      const nb = goal ? [[1,0],[-1,0],[0,1],[0,-1]].filter(([dc, dr]) => {
+        const c2 = goal[0] + dc, r2 = goal[1] + dr;
+        return c2 >= 0 && r2 >= 0 && c2 < COLS && r2 < COLS && !blocked[r2 * COLS + c2];
+      }).length : -1;
+      return { from, start, goal, len: cells ? cells.length : 0,
+               fromBlocked: blocked[from[1] * COLS + from[0]] === 1,
+               goalBlocked: goal ? blocked[goal[1] * COLS + goal[0]] === 1 : null,
+               goalFreeNeighbors: nb };
+    },
     rowOf: (z) => {
       const r = cell(z), out = [];
       for (let c = 0; c < COLS; c++) { out.push(blocked[r * COLS + c] ? 1 : 0); }

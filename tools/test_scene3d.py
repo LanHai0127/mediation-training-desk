@@ -137,6 +137,18 @@ def main() -> int:
         check(blocked["walking"] is False, "点障碍内部不会一直卡在走路状态", str(blocked))
         check(abs(blocked["p"][0]) < 12 and abs(blocked["p"][1]) < 12, "人还在底座范围内", str(blocked))
 
+        # 4.4 障碍不扩张：从房间中心必须能走到门口（"幽灵墙"会让这一段走不通）
+        walk = js("""(async () => {
+            const s = window.__mini;
+            s.setActor(0, 0);
+            const ok = s.walkTo(0.8, 4.6);
+            await new Promise(r => setTimeout(r, 1600));
+            const p = s.stats().actorXZ;
+            return {ok, xz: p, moved: Math.abs(p[1]) > 2.5};
+        })()""")
+        check(walk["ok"] is True and walk["moved"] is True,
+              "房间中心能一路走到门口（障碍没多圈半格）", str(walk))
+
         # 4.5 座位可坐：走近坐下，再点地面自动起身
         seat = js("""(async () => {
             window.__events = [];
@@ -145,12 +157,16 @@ def main() -> int:
                 if (window.__events.some(e => e[0] === 'seat')) break;
                 await new Promise(r => setTimeout(r, 100));
             }
-            const sat = window.__mini.stats().sitting;
+            await new Promise(r => setTimeout(r, 350));
+            const st = window.__mini.stats();
+            const sat = st.sitting;
             window.__mini.walkTo(2.0, 5.0);
             await new Promise(r => setTimeout(r, 700));
-            return {sat, stood: !window.__mini.stats().sitting, events: window.__events.slice()};
+            return {sat, walking: st.walking, stood: !window.__mini.stats().sitting,
+                    events: window.__events.slice()};
         })()""")
         check(seat["sat"] is True, "点长椅会走过去坐下", str(seat["events"]))
+        check(seat.get("walking") is False, "坐下后动画循环没被 return 掐断", str(seat))
         check(seat["stood"] is True, "起身后坐姿解除（点地面就走）", str(seat))
 
         # 5. 相机可自由旋转（拖拽后不会被强制回正）
