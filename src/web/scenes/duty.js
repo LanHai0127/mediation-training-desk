@@ -244,40 +244,40 @@ function ceilingLight() {
 const room = { x0: -8, x1: 8, z0: -6.5, z1: 6.5, h: 3.2 };
 
 const props = [
-  { id: "s_desk", x: 2.2, z: -2.2, w: 4.6, d: 1.5, interact: { x: 2.2, z: 0.3 }, build: dutyDesk },
-  { id: "s_desk2", x: -0.4, z: -1.2, w: 1.5, d: 2.6, build: () => {
+  { id: "s_desk", x: 0.8, z: -1.6, w: 4.6, d: 1.5, interact: { x: 2.2, z: 0.3 }, build: dutyDesk },
+  { id: "s_desk2", x: -2.0, z: -0.6, w: 1.5, d: 2.6, build: () => {
       const g = new THREE.Group();
       g.add(b(1.5, 0.1, 2.6, "#c8c2b8", 0, 0.78, 0));
       g.add(b(1.36, 0.7, 2.44, "#8f9aa3", 0, 0.4, 0));
       g.add(b(0.34, 0.14, 0.26, "#2b323a", 0, 0.86, -0.8));
       return g;
     } },
-  { id: "s_phone", x: 0.02, z: -2.3, w: 0.4, d: 0.3, interact: { x: 0.02, z: 0.1 }, build: () => {
+  { id: "s_phone", x: 0.6, z: -1.75, w: 0.4, d: 0.3, interact: { x: 0.02, z: 0.1 }, build: () => {
       const g = new THREE.Group();
       g.add(b(0.4, 0.1, 0.3, "#3f4a56", 0, 0.85, 0));
       g.add(b(0.34, 0.07, 0.09, "#4b5563", 0, 0.93, -0.2));
       return g;
     } },
-  { id: "s_chair", x: 2.2, z: -3.5, w: 0.7, d: 0.7, seat: true, facing: Math.PI, interact: { x: 2.2, z: -4.3 },
+  { id: "s_chair", x: 0.8, z: -2.95, w: 0.7, d: 0.7, seat: true, facing: Math.PI, interact: { x: 2.2, z: -4.3 },
     build: swivelChair },
-  { id: "s_bench", x: 1.6, z: 2.2, w: 1.8, d: 0.5, seat: true, facing: 0.2, interact: { x: 1.6, z: 2.85 },
+  { id: "s_bench", x: 0.8, z: 0.9, w: 1.8, d: 0.5, seat: true, facing: 0.2, interact: { x: 1.6, z: 2.85 },
     build: () => longBench(1.8) },
-  { id: "s_wait", x: -4.6, z: 2.6, w: 1.8, d: 0.5, seat: true, facing: 0.1, interact: { x: -4.6, z: 3.2 },
+  { id: "s_wait", x: -6.4, z: 2.6, w: 1.8, d: 0.5, seat: true, facing: 0.1, interact: { x: -4.6, z: 3.2 },
     build: waitingChairs },
-  { id: "s_cab1", x: -5.9, z: -5.35, w: 1.05, d: 0.58, build: cabinet },
-  { id: "s_cab2", x: -4.7, z: -5.35, w: 1.05, d: 0.58, build: cabinet },
-  { id: "s_water", x: 5.9, z: -5.2, w: 0.55, d: 0.5, build: waterCooler },
+  { id: "s_cab1", x: -6.6, z: -5.9, w: 1.05, d: 0.58, build: cabinet },
+  { id: "s_cab2", x: -5.5, z: -5.9, w: 1.05, d: 0.58, build: cabinet },
+  { id: "s_water", x: 5.9, z: -5.9, w: 0.55, d: 0.5, build: waterCooler },
   { id: "s_fan", x: -6.2, z: 1.4, w: 0.6, d: 0.6, build: fan },
-  { id: "s_bin", x: -2.9, z: 5.8, w: 0.6, d: 0.45, build: trashPair },
-  { id: "s_umbrella", x: -7.2, z: 5.6, w: 0.4, d: 0.4, build: umbrellaStand },
-  { id: "s_parcel", x: 5.7, z: 4.7, w: 0.7, d: 0.55, build: parcelStack },
-  { id: "s_lost", x: 6.5, z: -3.4, w: 1.0, d: 0.32, build: lostAndFound },
+  { id: "s_bin", x: -7.0, z: 4.9, w: 0.6, d: 0.45, build: trashPair },
+  { id: "s_umbrella", x: -6.9, z: 5.9, w: 0.4, d: 0.4, build: umbrellaStand },
+  { id: "s_parcel", x: 7.0, z: 4.4, w: 0.7, d: 0.55, build: parcelStack },
+  { id: "s_lost", x: 7.4, z: -3.4, w: 1.0, d: 0.32, build: lostAndFound },
   { id: "s_mat", x: 0.2, z: 4.9, w: 1.6, d: 0.9, passable: true,
     build: () => b(1.6, 0.03, 0.9, "#b8b2a6", 0, 0.015, 0) },
   { id: "s_radiator", x: -3.0, z: -6.3, w: 0.95, d: 0.14, passable: true, build: radiator },
-  { id: "s_plantA", x: 6.4, z: -5.7, w: 0.4, d: 0.4, build: plant },
-  { id: "s_plantB", x: -6.6, z: -3.6, w: 0.4, d: 0.4, build: plant },
-  { id: "s_mop", x: -6.5, z: 5.6, w: 0.3, d: 0.3, build: () => {
+  { id: "s_plantA", x: 6.8, z: -5.6, w: 0.4, d: 0.4, build: plant },
+  { id: "s_plantB", x: -6.9, z: 5.4, w: 0.4, d: 0.4, build: plant },
+  { id: "s_mop", x: 7.4, z: 5.6, w: 0.3, d: 0.3, build: () => {
       const g = new THREE.Group();
       g.add(cy(0.16, 0.14, 0.3, "#8f9aa3", 0, 0.15, 0, 12));
       g.add(cy(0.02, 0.02, 1.1, "#b98b5e", 0.02, 0.8, 0, 8));
@@ -285,7 +285,7 @@ const props = [
     } },
 
   // 墙面
-  { id: "s_board", x: -6.78, z: -1.0, w: 0.1, d: 2.4, interact: { x: -5.6, z: -1.0 }, build: () => {
+  { id: "s_board", x: -7.86, z: 2.6, w: 0.1, d: 2.4, interact: { x: -5.6, z: -1.0 }, build: () => {
       const g = new THREE.Group();
       g.add(panel(2.4, 1.3, "#f2f1ec", 0, 1.75, 0, Math.PI / 2));
       g.add(panel(2.4, 0.16, "#2f4a6d", 0, 2.35, 0, Math.PI / 2));
@@ -300,7 +300,7 @@ const props = [
       }
       return g;
     } },
-  { id: "s_roster", x: -6.78, z: 2.2, w: 0.1, d: 1.1, build: () => {
+  { id: "s_roster", x: -7.87, z: 0.9, w: 0.1, d: 1.1, build: () => {
       const g = new THREE.Group();
       g.add(panel(1.1, 0.85, "#fbfaf7", 0, 1.7, 0, Math.PI / 2));
       g.add(panel(1.1, 0.08, "#8a3b30", 0, 2.1, 0, Math.PI / 2));
@@ -309,7 +309,7 @@ const props = [
       }
       return g;
     } },
-  { id: "s_clock", x: -2.4, z: -6.3, w: 0.4, d: 0.1, build: () => {
+  { id: "s_clock", x: 1.0, z: -6.3, w: 0.4, d: 0.1, build: () => {
       const g = new THREE.Group();
       const face = cy(0.22, 0.22, 0.06, "#f7f5ef", 0, 2.2, 0, 20);
       face.rotation.x = Math.PI / 2;
@@ -320,7 +320,7 @@ const props = [
       g.add(mn);
       return g;
     } },
-  { id: "s_whiteboard", x: 0.6, z: -6.3, w: 1.8, d: 0.08, build: () => {
+  { id: "s_whiteboard", x: -1.2, z: -6.3, w: 1.8, d: 0.08, build: () => {
       const g = new THREE.Group();
       g.add(panel(1.9, 1.1, "#9aa3ad", 0, 1.85, -0.03));
       g.add(panel(1.8, 1.0, "#f7f7f4", 0, 1.85, 0.01));
@@ -332,30 +332,30 @@ const props = [
       g.add(b(0.10, 0.03, 0.02, "#2f4a6d", -0.2, 1.6, 0.04));
       return g;
     } },
-  { id: "s_posterA", x: 3.4, z: -6.44, w: 0.7, d: 0.06, build: () => poster(0.9, 1.2, "#f6e3bd", "#3f6a47", 0, 1.85, 0) },
+  { id: "s_posterA", x: 3.2, z: -6.3, w: 0.7, d: 0.06, build: () => poster(0.9, 1.2, "#f6e3bd", "#3f6a47", 0, 1.85, 0) },
   { id: "s_posterB", x: 4.3, z: -6.44, w: 0.7, d: 0.06, build: () => poster(0.9, 1.2, "#cfe0f2", "#2f4a6d", 0, 1.85, 0) },
-  { id: "s_calendar", x: 5.2, z: -6.3, w: 0.5, d: 0.05, build: () => poster(0.5, 0.62, "#f2ded8", "#8a3b30", 0, 1.95, 0) },
-  { id: "s_box", x: 6.86, z: -1.4, w: 0.1, d: 0.6, build: () => {
+  { id: "s_calendar", x: 4.4, z: -6.3, w: 0.5, d: 0.05, build: () => poster(0.5, 0.62, "#f2ded8", "#8a3b30", 0, 1.95, 0) },
+  { id: "s_box", x: 7.86, z: -2.2, w: 0.1, d: 0.6, build: () => {
       const g = new THREE.Group();
       g.add(panel(0.6, 0.8, "#dfe3e8", 0, 2.3, 0, Math.PI / 2));
       g.add(panel(0.5, 0.05, "#8f9aa3", 0.03, 2.0, 0, Math.PI / 2));
       return g;
     } },
-  { id: "s_extinguisher", x: 6.7, z: 5.2, w: 0.26, d: 0.26, build: () => {
+  { id: "s_extinguisher", x: 7.5, z: 3.4, w: 0.26, d: 0.26, build: () => {
       const g = new THREE.Group();
       g.add(cy(0.12, 0.12, 0.5, "#b42318", 0, 0.28, 0, 14));
       g.add(cy(0.04, 0.04, 0.1, "#2b3138", 0, 0.58, 0, 10));
       g.add(b(0.26, 0.05, 0.26, "#8f9aa3", 0, 0.03, 0));
       return g;
     } },
-  { id: "s_window", x: -6.86, z: 3.6, w: 0.1, d: 1.6, build: () => {
+  { id: "s_window", x: -7.86, z: -2.6, w: 0.1, d: 1.6, build: () => {
       const g = new THREE.Group();
       g.add(panel(1.6, 1.2, "#d6e4ee", 0, 1.9, 0, Math.PI / 2));
       g.add(panel(1.7, 0.08, "#b9c1cb", 0, 2.52, 0, Math.PI / 2));
       g.add(panel(1.7, 0.08, "#b9c1cb", 0, 1.28, 0, Math.PI / 2));
       return g;
     } },
-  { id: "s_door", x: 6.86, z: 1.2, w: 0.1, d: 1.1, interact: { x: 5.7, z: 1.2 }, build: () => {
+  { id: "s_door", x: 7.86, z: 1.2, w: 0.1, d: 1.1, interact: { x: 5.7, z: 1.2 }, build: () => {
       const g = new THREE.Group();
       g.add(b(0.1, 2.2, 1.1, "#a88a68", 0, 1.1, 0));
       g.add(b(0.06, 0.5, 0.85, "#b99a76", 0, 1.6, 0));
@@ -375,9 +375,68 @@ const props = [
   { id: "s_lampC", x: -7.55, z: 2.4, w: 0.3, d: 1.4, passable: true, build: ceilingLight },
   { id: "s_lampD", x: 7.55, z: -1.6, w: 0.3, d: 1.4, passable: true, build: ceilingLight },
 
+  // 前景遮挡：门口矮柜 + 一株高绿植（比孤立柱子自然，也符合"靠墙"原则）
+  { id: "s_lowCab", x: 5.6, z: 5.6, w: 1.4, d: 0.5, build: () => {
+      const g = new THREE.Group();
+      g.add(b(1.4, 0.06, 0.5, "#c9a17a", 0, 0.55, 0));
+      g.add(b(1.34, 0.5, 0.46, "#b08a63", 0, 0.28, 0));
+      g.add(b(0.03, 0.16, 0.02, "#6b4f3a", 0, 0.3, 0.24));
+      g.add(b(0.22, 0.16, 0.02, "#6b4f3a", 0, 0.3, 0.24));
+      g.add(b(0.22, 0.16, 0.02, "#6b4f3a", 0.05, 0.3, 0.24));
+      g.add(cy(0.09, 0.09, 0.18, "#dfe6ea", 0, 0.68, 0.1, 12));   // 花瓶
+      g.add(ball(0.07, "#d0605c", 0, 0.8, 0.1));
+      return g;
+    } },
+  { id: "s_tallPlant", x: 6.6, z: 6.2, w: 0.5, d: 0.5, build: () => {
+      const g = new THREE.Group();
+      g.add(cy(0.22, 0.18, 0.5, "#b98b5e", 0, 0.25, 0, 12));
+      g.add(cy(0.03, 0.03, 1.1, "#6b8e5e", 0, 0.9, 0, 8));
+      g.add(ball(0.34, "#4f7a52", -0.12, 1.35, 0.05));
+      g.add(ball(0.28, "#5f8c60", 0.16, 1.5, -0.06));
+      g.add(ball(0.2, "#6f9e76", 0.02, 1.66, 0.08));
+      return g;
+    } },
+
+  // 软隔断：用绿植箱 + 等候小桌把"门厅 / 等候 / 受理"分成三块，
+  // 中央空区因此有了边界，不再是"一个大空场"
+  { id: "s_divider", x: -1.9, z: 3.4, w: 2.2, d: 0.55, build: () => {
+      const g = new THREE.Group();
+      g.add(b(2.2, 0.42, 0.55, "#cfc7b8", 0, 0.21, 0));
+      g.add(b(2.2, 0.06, 0.6, "#b98b5e", 0, 0.45, 0));
+      for (let i = 0; i < 3; i++) {
+        g.add(cy(0.14, 0.12, 0.22, "#8a6240", -0.66 + i * 0.66, 0.6, 0, 10));
+        g.add(ball(0.17, i % 2 ? "#5b8c63" : "#4f7a52", -0.66 + i * 0.66, 0.82, 0));
+      }
+      return g;
+    } },
+  { id: "s_round", x: -3.4, z: 2.9, w: 0.9, d: 0.9, seat: true, facing: 0.3,
+    interact: { x: -3.4, z: 3.55 }, build: () => {
+      const g = new THREE.Group();
+      g.add(cy(0.42, 0.42, 0.05, "#c9a17a", 0, 0.52, 0, 20));
+      g.add(cy(0.05, 0.05, 0.5, "#8f7a5e", 0, 0.26, 0, 10));
+      g.add(cy(0.24, 0.24, 0.04, "#8f7a5e", 0, 0.02, 0, 16));
+      for (const sx of [-1, 1]) {
+        g.add(b(0.34, 0.05, 0.3, "#9cc5b4", sx * 0.62, 0.26, 0.1));
+        g.add(b(0.34, 0.24, 0.05, "#9cc5b4", sx * 0.62, 0.38, -0.04));
+        g.add(b(0.05, 0.26, 0.3, "#8f9aa3", sx * 0.62, 0.13, 0.1));
+      }
+      g.add(b(0.3, 0.02, 0.22, "#eef4ff", 0, 0.56, 0.06));
+      return g;
+    } },
+  { id: "s_guide", x: 0.8, z: 6.2, w: 0.5, d: 0.3, build: () => {
+      const g = new THREE.Group();
+      g.add(cy(0.035, 0.035, 1.3, "#8f9aa3", 0, 0.65, 0, 10));
+      g.add(b(0.6, 0.9, 0.04, "#2f4a6d", 0, 1.1, 0));
+      g.add(b(0.42, 0.06, 0.02, "#f5efe3", 0, 1.32, 0.03));
+      g.add(b(0.36, 0.04, 0.02, "#cfe0f2", 0, 1.18, 0.03));
+      g.add(b(0.3, 0.04, 0.02, "#f6e3bd", 0, 1.08, 0.03));
+      g.add(cy(0.2, 0.2, 0.04, "#8f9aa3", 0, 0.02, 0, 14));
+      return g;
+    } },
+
   // 地面小物
   // 房间中部：取号机 + 一米线（派出所的典型陈设，也把空地填起来）
-  { id: "s_kiosk", x: 0.4, z: 0.4, w: 0.5, d: 0.4, build: () => {
+  { id: "s_kiosk", x: -2.6, z: 3.2, w: 0.5, d: 0.4, build: () => {
       const g = new THREE.Group();
       g.add(b(0.5, 0.12, 0.4, "#8f9aa3", 0, 0.06, 0));
       g.add(cy(0.06, 0.06, 1.1, "#b9c1cb", 0, 0.62, 0, 10));
@@ -385,25 +444,25 @@ const props = [
       g.add(b(0.2, 0.03, 0.02, "#7ac47f", 0, 1.18, 0.08));
       return g;
     } },
-  { id: "s_line1", x: -1.6, z: 0.9, w: 0.08, d: 0.08, passable: true, build: () => {
+  { id: "s_line1", x: -1.9, z: 0.2, w: 0.08, d: 0.08, passable: true, build: () => {
       const g = new THREE.Group();
       g.add(cy(0.04, 0.05, 0.95, "#8f9aa3", 0, 0.48, 0, 10));
       g.add(cy(0.07, 0.07, 0.05, "#5b6672", 0, 0.02, 0, 10));
       g.add(cy(0.05, 0.03, 0.08, "#5b6672", 0, 0.98, 0, 10));
       return g;
     } },
-  { id: "s_line2", x: 2.4, z: 0.9, w: 0.08, d: 0.08, passable: true, build: () => {
+  { id: "s_line2", x: 3.0, z: 0.2, w: 0.08, d: 0.08, passable: true, build: () => {
       const g = new THREE.Group();
       g.add(cy(0.04, 0.05, 0.95, "#8f9aa3", 0, 0.48, 0, 10));
       g.add(cy(0.07, 0.07, 0.05, "#5b6672", 0, 0.02, 0, 10));
       g.add(cy(0.05, 0.03, 0.08, "#5b6672", 0, 0.98, 0, 10));
       return g;
     } },
-  { id: "s_line3", x: 0.4, z: 0.9, w: 4.2, d: 0.03, passable: true,
+  { id: "s_line3", x: 0.4, z: 0.2, w: 4.2, d: 0.03, passable: true,
     build: () => b(4.2, 0.012, 0.02, "#4b5563", 0.4, 0.72, 0) },
 
   // 报刊架（靠左墙）、X 展架（取号机旁）、儿童等候角（左侧空地）
-  { id: "s_rack", x: -6.4, z: 4.6, w: 0.7, d: 0.4, build: () => {
+  { id: "s_rack", x: -6.4, z: 0.9, w: 0.7, d: 0.4, build: () => {
       const g = new THREE.Group();
       g.add(b(0.7, 0.05, 0.4, "#8f7a5e", 0, 0.02, 0));
       for (let i = 0; i < 3; i++) {
@@ -418,7 +477,7 @@ const props = [
       }
       return g;
     } },
-  { id: "s_kidTable", x: -1.0, z: 5.3, w: 0.8, d: 0.5, build: () => {
+  { id: "s_kidTable", x: -4.6, z: 5.2, w: 0.8, d: 0.5, build: () => {
       const g = new THREE.Group();
       g.add(b(0.8, 0.06, 0.5, "#c9a17a", 0, 0.42, 0));
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
@@ -448,9 +507,9 @@ obstacles.push({ x: 8, z: 0, w: 0.4, d: 13 });
 
 // 氛围人物：不交互，只让屋子像"有人"
 const characters = [
-  { id: "amb_wait", label: "等人的老太太", x: -4.6, z: 2.25, facing: 0.1, pose: "sit",
+  { id: "amb_wait", label: "等人的老太太", x: -6.4, z: 2.25, facing: 1.5, pose: "sit",
     scale: 0.94, color: "#a89c86", pants: "#5c574d", hair: "#e6e0d4", ambient: true },
-  { id: "amb_caller", label: "打电话的年轻人", x: 6.1, z: 2.7, facing: -1.5, pose: "stand",
+  { id: "amb_caller", label: "打电话的年轻人", x: 6.4, z: 2.4, facing: -1.6, pose: "stand",
     color: "#6b7684", pants: "#3b4552", ambient: true }
 ];
 
@@ -467,7 +526,7 @@ scene = createScene({
     { x: 2.5, z: -3.2, intensity: 1.8 },
     { x: 0.0, z: 2.4, intensity: 1.5 }
   ],
-  actor: { x: 0.2, z: 4.2 },
+  actor: { x: 0.8, z: 4.6 },
   onSpot: (p) => { (window.__events = window.__events || []).push(["spot", p.id]); },
   onPerson: (p) => { (window.__events = window.__events || []).push(["person", p.id]); },
   onArrived: (p) => { (window.__events = window.__events || []).push(["arrived", +p.x.toFixed(2), +p.z.toFixed(2)]); },

@@ -44,6 +44,9 @@
 
     <div class="stage" id="stage">
       <canvas id="scene"></canvas>
+      <!-- 3D 场景：同源 iframe（页面 CSP 为 script-src 'self'，iframe 需 frame-src 'self'） -->
+      <iframe id="scene3d" title="3D 场景" hidden
+              sandbox="allow-scripts allow-same-origin"></iframe>
       <!-- 合规角标：固定在画布内。放 body 上会随页面滚动压住正文，放这里既常驻又不碍事 -->
       <div class="compliance-badge stage-badge">教学演练 · 虚构案例 · 非真实警情</div>
       <div class="hint" id="hint">点地面走过去 · 点物件查看</div>
