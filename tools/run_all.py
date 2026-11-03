@@ -58,6 +58,8 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("test_notes", ["tools/test_notes.py"], True),
     # 接口边界：乱传参数、并发提交、超长文本。
     ("test_api", ["tools/test_api.py"], True),
+    # 3D 微缩场景：能不能走、走近才触发、障碍不卡死（需 websocket-client）。
+    ("test_scene3d", ["tools/test_scene3d.py"], True),
     # 浏览器交互（需 websocket-client；普通解释器会自动 SKIP 并在汇总里注明）。
     ("test_ui", ["tools/test_ui.py"], True),
 ]

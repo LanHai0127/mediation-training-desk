@@ -1,12 +1,12 @@
 {
-  "updated": "2026-11-03T11:47:44",
+  "updated": "2026-11-03T12:02:15",
   "note": "由 tools/run_all.py --record 生成；文档里的断言数以这里为准",
   "suites": {
     "test_smoke": {
       "total": 10,
       "failed": 0,
       "exit": 0,
-      "seconds": 0.9,
+      "seconds": 0.8,
       "ok": true,
       "skipped": false
     },
@@ -30,7 +30,7 @@
       "total": 19,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.8,
+      "seconds": 1.7,
       "ok": true,
       "skipped": false
     },
@@ -38,7 +38,7 @@
       "total": 14,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.9,
+      "seconds": 1.8,
       "ok": true,
       "skipped": false
     },
@@ -46,7 +46,7 @@
       "total": 15,
       "failed": 0,
       "exit": 0,
-      "seconds": 2.8,
+      "seconds": 3.0,
       "ok": true,
       "skipped": false
     },
@@ -54,7 +54,7 @@
       "total": 18,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.9,
+      "seconds": 1.8,
       "ok": true,
       "skipped": false
     },
@@ -62,7 +62,15 @@
       "total": 20,
       "failed": 0,
       "exit": 0,
-      "seconds": 1.9,
+      "seconds": 1.8,
+      "ok": true,
+      "skipped": false
+    },
+    "test_scene3d": {
+      "total": 10,
+      "failed": 0,
+      "exit": 0,
+      "seconds": 24.2,
       "ok": true,
       "skipped": false
     },
@@ -70,12 +78,12 @@
       "total": 23,
       "failed": 0,
       "exit": 0,
-      "seconds": 20.6,
+      "seconds": 21.3,
       "ok": true,
       "skipped": false
     }
   },
   "tools": {},
-  "total": 157,
+  "total": 167,
   "all_ok": true
 }
