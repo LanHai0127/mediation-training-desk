@@ -10,7 +10,7 @@
 
 | 能力 | 状态 |
 |---|---|
-| 2.5D 现场（画家算法 + 透视缩放 + A\* 寻路 + 镜头跟随） | 可用，29 种物件 · 4 个案子 |
+| 2.5D 现场（画家算法 + 透视缩放 + A\* 寻路 + 镜头跟随） | 可用，43 种物件 · 7 个案子（默认渲染） |
 | 点击走动 / 点击查看，移动端单指操作 | 可用（Pointer Events，无需鼠标） |
 | 当事人对话（情绪/信任双状态，背靠背 vs 面对面） | 可用，模型只出口语 |
 | 模型不可用时走剧本台词 | 可用（拔掉 key 也能完整体验） |
@@ -22,9 +22,12 @@
 | 电话通道：拨号、通话、挂断、通话记录 | 可用；电话 = 单独沟通，能办完电话案 |
 | 固定站位人物：点人即谈话 | 可用，14 个（含共用角色） |
 | 场景物件 43 种 / 地面材质 6 种（球场画白线） | 可用 |
-| **3D 微缩场景**（three.js）：点地走、点物走近触发、拖拽转视角 | S0 值班台 50+ 件物件、2 名氛围人物 |
+| **3D 微缩场景**（three.js）：点地走、点物走近触发、拖拽自由转视角、可坐 | S0 值班台：51 件物件 · 2 名氛围人物 · 可坐 3 处 |
 | 一页 PPT / 答辩脚本 / 提交表 / 部署材料 | 已备（`docs/`、`deploy/`） |
 | 云端 HTTPS 部署 | 未做（按要求本轮不做） |
+
+> 目前**两套渲染并存**：2.5D 覆盖全部 7 个案子（默认），3D 先做通了 S0 值班台
+> （`/static/scenes/duty.html`）。3D 版接进训练台还没做——见 TASKS 的 S11。
 
 ## 跑起来
 
@@ -95,6 +98,11 @@ src/
   cases/case_01_noise/case.json   案子：3 场景 / 32 点位 / 2 当事人 / 6 条事实
   web/
     scene.js         2.5D 场景引擎（SPOT_KINDS 注册表 / A* / 投影 / 绘制）
+    scenes/          3D 微缩场景
+      scene3d.js     通用运行时：底座/光/雾、A*（拉直）、碰撞、主角、相机、Raycaster
+      duty.js        S0 值班台的场景数据（51 件物件、2 名氛围人物）
+      duty.html      场景页（外链脚本，符合 CSP）
+      vendor/        three 0.180 本地副本（零 CDN）
     app.js           前端胶水：API、场景、面板、对话
     app.css          政务蓝 + 暖灰，全部走 :root 变量
 tools/
@@ -104,11 +112,11 @@ tools/
   test_llm.py        对话层与降级（14 项）
   test_judge.py      判定内核与复盘（28 项）
   test_laws.py       法条库可溯源（16 项）
-  test_scene3d.py    3D 场景交互（10 项，需 websocket-client）
+  test_scene3d.py    3D 场景交互（15 项，需 websocket-client）
   test_call.py       电话通道（15 项）
   test_notes.py      记事本与提交门槛（18 项）
   test_api.py        接口边界与并发（20 项）
-  test_ui.py         浏览器真实点击/拖动流程（17 项，需 websocket-client）
+  test_ui.py         浏览器真实点击/拖动流程（23 项，需 websocket-client）
   ui_probe.py        CDP 布局探针（量 scrollWidth / 抓窄屏溢出 / 模拟真实点击）
   make_ppt.py        生成一页 PPT（数字取自 ledger）
 docs/
