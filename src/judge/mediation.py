@@ -33,7 +33,9 @@ W_COVERAGE = 0.55          # 结果分权重
 W_DIMS = 0.25              # 四维质量权重
 W_PROCESS = 0.20           # 过程分权重（分别谈话 / 不越界）
 
-DIM_ORDER = ("dim_claim", "dim_bottom", "dim_evidence", "dim_face")
+# 维度顺序由案子数据决定：简单案 2 维、常规案 4 维、院墙案 5 维，
+# 判定代码不写死数量，否则每加一种案子就要改内核。
+DEFAULT_DIMS = ("dim_claim", "dim_bottom", "dim_evidence", "dim_face")
 
 
 class MediationJudge:
@@ -41,6 +43,8 @@ class MediationJudge:
         self.case = case
         self.kernel = kernel or DecisionKernel()
         self.dims = {d["id"]: d for d in case.get("dimensions") or []}
+        # 保持案子里写的顺序：前两维是主干，后面的维度决定深度
+        self.dim_order = tuple(d["id"] for d in case.get("dimensions") or []) or DEFAULT_DIMS
         self.needs = {n["id"]: n for n in case.get("needs") or []}
         if not self.needs:                       # 兼容把 needs 挂在各当事人下面的写法
             for p in (case.get("parties") or {}).values():
@@ -75,7 +79,7 @@ class MediationJudge:
         missing_facts: list[str] = []
         unavailable: list[dict[str, str]] = []
 
-        for dim_id in DIM_ORDER:
+        for dim_id in self.dim_order:
             dim = self.dims.get(dim_id)
             if not dim:
                 continue
@@ -149,7 +153,7 @@ class MediationJudge:
         ceiling = 0.0
         for nid, need in self.needs.items():
             best = 0.0
-            for dim_id in DIM_ORDER:
+            for dim_id in self.dim_order:
                 dim = self.dims.get(dim_id)
                 if not dim:
                     continue
@@ -164,7 +168,8 @@ class MediationJudge:
         # ---------------- 过程分
         talked = ctx.get("talked") or []
         by_channel = {t.get("channel") for t in talked if isinstance(t, dict)}
-        separate_done = "separate" in by_channel
+        # 电话案里"打电话"就是分别沟通：不能因为没有「单独谈」按钮就判程序不合格
+        separate_done = ("separate" in by_channel) or ("phone" in by_channel)
         oversteps = int(ctx.get("oversteps") or 0)
         process = (0.5 if separate_done else 0.0) + 0.5 * max(0.0, 1.0 - oversteps / 2.0)
 

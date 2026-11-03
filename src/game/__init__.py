@@ -96,6 +96,10 @@ class Session:
         # 记事本：只存自己写的话。系统不会替你记——这是训练的一部分，也是"提交前必须有记录"的门槛。
         self.notes: list[dict[str, Any]] = []
         self.note_seq = 0
+        # 通话记录：只记"跟谁、多久、说了几轮"，不存通话内容
+        self.calls: list[dict[str, Any]] = []
+        self.call_seq = 0
+        self._open_call: str | None = None
         self.result: dict[str, Any] | None = None
         self.report: dict[str, Any] | None = None
         self.scene_id = (case.get("scenes") or [{}])[0].get("id", "")
@@ -111,6 +115,7 @@ class Session:
             "seen": self.seen,
             "factsSeen": self.facts_seen,
             "notes": [dict(n) for n in self.notes],
+            "calls": [dict(c) for c in self.calls],
             "talked": self.talked,
             "hasResult": bool(self.result),
             "parties": {pid: {"trust": s["trust"], "mood": s["mood"]}
@@ -158,6 +163,39 @@ class Session:
             return {"ok": False, "message": "没有这条笔记。"}
         return {"ok": True, "message": "已删除。"}
 
+    # ------------------------------------------------------------ 通话
+    def start_call(self, party_id: str) -> dict[str, Any]:
+        if party_id not in (self.case.get("parties") or {}):
+            return {"ok": False, "message": "没有这个联系人。"}
+        if self._open_call:                       # 同一时刻只允许一通
+            self.end_call(self._open_call)
+        self.call_seq += 1
+        cid = "C%d" % self.call_seq
+        rec = {"id": cid, "partyId": party_id, "at": round(time.time() - self.created, 1),
+               "seconds": 0, "turns": 0, "open": True}
+        self.calls.append(rec)
+        self._open_call = cid
+        return {"ok": True, "callId": cid, "call": dict(rec)}
+
+    def end_call(self, call_id: str = "") -> dict[str, Any]:
+        cid = call_id or self._open_call or ""
+        for c in self.calls:
+            if c["id"] == cid and c.get("open"):
+                c["open"] = False
+                c["seconds"] = max(0, int(round(time.time() - self.created - c["at"])))
+                if self._open_call == cid:
+                    self._open_call = None
+                return {"ok": True, "call": dict(c)}
+        return {"ok": False, "message": "没有正在进行的通话。"}
+
+    def note_call_turn(self) -> None:
+        if not self._open_call:
+            return
+        for c in self.calls:
+            if c["id"] == self._open_call:
+                c["turns"] += 1
+                return
+
     # ------------------------------------------------------------ 判定与复盘
     def submit(self, plan: dict[str, str], mode: str = "agreement") -> dict[str, Any]:
         """提交方案。入参只有方案与模式；对话文本一个字都不进判定。"""
@@ -178,7 +216,8 @@ class Session:
         }
         res = self.judge.evaluate(plan or {}, ctx, mode if mode in ("agreement", "refer") else "agreement")
         res["context"] = {"factsSeen": list(self.facts_seen), "oversteps": ctx["oversteps"],
-                          "trust": ctx["trust"], "notes": len(self.notes)}
+                          "trust": ctx["trust"], "notes": len(self.notes),
+                          "calls": len(self.calls)}
         self.result = res
         self.report = build_report(self, res)
         return res

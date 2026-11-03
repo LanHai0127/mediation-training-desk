@@ -97,11 +97,13 @@ def build_report(session: Any, result: dict[str, Any]) -> dict[str, Any]:
         "process": {
             "separateTalk": bool(process.get("separateTalk")),
             "separateCount": len(separate),
+            "phoneSeconds": sum(int(c.get("seconds") or 0) for c in (getattr(session, "calls", None) or [])),
             "talkedParties": sorted({t.get("partyId", "") for t in talked}),
             "oversteps": int(process.get("oversteps") or 0),
             "spotsSeen": len(session.seen or []),
             "factsSeen": len(session.facts_seen or []),
             "processScore": process.get("score", 0),
+            "phoneCalls": len(getattr(session, "calls", None) or []),
         },
         "notes": [{"text": n.get("text", "")} for n in (getattr(session, "notes", None) or [])],
         "missingFacts": result.get("missingFacts") or [],

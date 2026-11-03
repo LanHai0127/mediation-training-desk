@@ -301,6 +301,7 @@ class Handler(BaseHTTPRequestHandler):
                         "brief": c.get("meta", {}).get("brief", ""),
                         "scenes": len(c.get("scenes") or []),
                         "parties": len(c.get("parties") or {}),
+                        "dimensions": len(c.get("dimensions") or []),
                     } for c in CASES.values()]
                 })
             if path.startswith("/api/case/"):
@@ -384,6 +385,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._submit(data)
             if path == "/api/notes":
                 return self._notes(data)
+            if path == "/api/call":
+                return self._call(data)
             return self._json({"error": "not found"}, 404)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
@@ -474,7 +477,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "session not found"}, 404)
         pid = str(data.get("partyId") or "")
         text = str(data.get("text") or "")[:300]     # 超长输入截断，别送去模型烧额度
-        channel = "separate" if data.get("channel") == "separate" else "face"
+        channel = str(data.get("channel") or "face")
+        if channel not in ("face", "separate", "phone"):
+            channel = "face"
         offline = bool(data.get("offline")) or not LLM.enabled
 
         limited = ""
@@ -484,6 +489,8 @@ class Handler(BaseHTTPRequestHandler):
                 limited = why
 
         with SESS_LOCK:
+            if channel == "phone":
+                s.note_call_turn()
             if offline or limited:
                 saved, s.dialogue.client = s.dialogue.client, None
                 try:
@@ -517,6 +524,23 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 res = {"ok": True, "message": ""}
             res["notes"] = [dict(n) for n in s.notes]
+        res["view"] = s.view()
+        self._json(res)
+
+    def _call(self, data: dict[str, Any]) -> None:
+        """通话：开始 / 结束。只记"跟谁、多久、几轮"，不存内容。"""
+        s = self._session_of(str(data.get("sessionId") or ""))
+        if not s:
+            return self._json({"error": "session not found"}, 404)
+        op = str(data.get("op") or "")
+        with SESS_LOCK:
+            if op == "start":
+                res = s.start_call(str(data.get("partyId") or ""))
+            elif op == "end":
+                res = s.end_call(str(data.get("callId") or ""))
+            else:
+                res = {"ok": False, "message": "未知操作"}
+            res["calls"] = [dict(c) for c in s.calls]
         res["view"] = s.view()
         self._json(res)
 

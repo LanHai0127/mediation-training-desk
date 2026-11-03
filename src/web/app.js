@@ -165,6 +165,13 @@
       state.scene = new S.Scene(canvas, data);
       state.scene.onSpot = onSpot;
       state.scene.onBlocked = function (msg) { toast(msg); };
+      state.scene.onPerson = function (ch) {
+        if (!state.caseData.parties[ch.id]) { return; }
+        pickParty(ch.id);
+        toast("正在跟 " + (ch.label || "") + " 说话");
+        var dock = $("dock");
+        if (dock) { dock.scrollIntoView({ behavior: "smooth", block: "center" }); }
+      };
       window.__scene = state.scene;    // 给 UI 探针用：量投影与人物位置，不参与业务
       requestAnimationFrame(loop);
     } else {
@@ -210,6 +217,7 @@
       if (d.view) { state.view = d.view; }
       $("hint").textContent = spot.label;
       toast(spot.label + "：" + (spot.look || ""));
+      if (spot.call) { openCall(spot.call); }
       if (spot.fact && state.caseData.facts) {
         var f = state.caseData.facts.filter(function (x) { return x.id === spot.fact; })[0];
         if (f) { remember(f); }
@@ -541,6 +549,7 @@
       "<div class='proc-grid'>" +
         procCell("分别谈话", pr.separateTalk ? "有 · " + pr.separateCount + " 次" : "没有", !pr.separateTalk) +
         procCell("越界承诺", (pr.oversteps || 0) + " 次", (pr.oversteps || 0) >= 2) +
+        procCell("电话通话", (pr.phoneCalls || 0) + " 通", false) +
         procCell("看过点位", (pr.spotsSeen || 0) + " 处", false) +
         procCell("记下事实", (pr.factsSeen || 0) + " 条", false) +
       "</div>" +
@@ -864,18 +873,108 @@
 
   function renderCalls() {
     var box = $("callsList");
-    box.innerHTML =
-      "<div class='p-empty'>电话通道还没接进来。<br>" +
-      "下一版会做：接警、回拨当事人、通话记录，通话里的承诺一样计入越界判定。</div>";
+    box.innerHTML = "";
     (state.caseData.partyOrder || []).forEach(function (pid) {
       var p = state.caseData.parties[pid];
       if (!p) { return; }
       var d = document.createElement("div");
-      d.className = "p-item done";
+      d.className = "p-item";
       d.innerHTML = "<b>" + esc(p.name) + "</b><span>" + esc(p.role) + "</span>" +
-        "<div class='meta'>未接入拨号</div>";
+        "<div class='row-actions'><button class='row-btn' data-act='dial'>拨打</button></div>";
+      d.querySelector("[data-act='dial']").addEventListener("click", function () { openCall(pid); });
       box.appendChild(d);
     });
+
+    var calls = (state.view && state.view.calls) || [];
+    if (calls.length) {
+      var h = document.createElement("div");
+      h.className = "p-sub-title";
+      h.textContent = "通话记录";
+      box.appendChild(h);
+      calls.slice().reverse().forEach(function (c) {
+        var p = state.caseData.parties[c.partyId] || {};
+        var d = document.createElement("div");
+        d.className = "p-item done";
+        d.innerHTML = "<b>" + esc(p.name || c.partyId) + "</b><span>" +
+          (c.open ? "通话中" : "通话 " + fmtSec(c.seconds) + " · " + c.turns + " 轮") + "</span>";
+        box.appendChild(d);
+      });
+    } else {
+      var e = document.createElement("div");
+      e.className = "p-empty";
+      e.textContent = "还没有通话记录。";
+      box.appendChild(e);
+    }
+  }
+
+  // ------------------------------------------------------------ 通话
+  function fmtSec(n) {
+    n = Math.max(0, Math.round(n || 0));
+    var m = Math.floor(n / 60), s2 = n % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (s2 < 10 ? "0" : "") + s2;
+  }
+
+  function openCall(pid) {
+    var p = state.caseData.parties[pid];
+    if (!p) { return; }
+    api("/api/call", { sessionId: state.sessionId, op: "start", partyId: pid })
+      .then(function (d) {
+        if (!d.ok) { toast(d.message || "拨不出去", "bad"); return; }
+        state.view = d.view;
+        state.call = { id: d.callId, pid: pid, t0: Date.now(), turns: 0 };
+        $("callName").textContent = p.name;
+        $("callRole").textContent = p.role;
+        $("callTimer").textContent = "00:00";
+        $("callThread").innerHTML =
+          "<div class='msg them'><div class='bubble'>" +
+          (pid === "p_a" && state.caseData.id === "case_00_flame"
+            ? "喂，派出所吗？我是小区物业小王——" : "喂，您好。") + "</div></div>";
+        $("callOverlay").hidden = false;
+        document.body.classList.add("modal-open");
+        $("callSay").value = "";
+        $("callSay").focus();
+        if (state.callTimer) { clearInterval(state.callTimer); }
+        state.callTimer = setInterval(function () {
+          if (!state.call) { return; }
+          $("callTimer").textContent = fmtSec((Date.now() - state.call.t0) / 1000);
+        }, 500);
+      })
+      .catch(function (e) { toast("拨号失败：" + e.message, "bad"); });
+  }
+
+  function callPush(role, text, note) {
+    var box = $("callThread");
+    var empty = box.querySelector(".call-hint");
+    if (empty) { empty.remove(); }
+    var d = document.createElement("div");
+    d.className = "msg " + (role === "me" ? "me" : "them");
+    d.innerHTML = "<div class='bubble'>" + esc(text) + "</div>" +
+      (note ? "<div class='note-line'>" + esc(note) + "</div>" : "");
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function hangUp() {
+    if (!state.call) { closeCall(); return; }
+    var id = state.call.id;
+    api("/api/call", { sessionId: state.sessionId, op: "end", callId: id })
+      .then(function (d) {
+        var c = d.call || {};
+        state.view = d.view;
+        toast("通话结束：" + fmtSec(c.seconds) + "，" + (c.turns || 0) + " 轮");
+        closeCall();
+        if (state.phonePage === "calls") { renderCalls(); }
+      })
+      .catch(function () { closeCall(); });
+  }
+
+  function closeCall() {
+    $("callOverlay").hidden = true;
+    if (state.callTimer) { clearInterval(state.callTimer); state.callTimer = null; }
+    state.call = null;
+    if ($("phoneOverlay").hidden && $("reportModal").hidden) {
+      document.body.classList.remove("modal-open");
+    }
   }
 
   function renderGuide() {
@@ -890,6 +989,35 @@
       return "<div class='p-item'><b>" + row[0] + "</b><span>" + row[1] + "</span></div>";
     }).join("");
   }
+
+  $("callForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!state.call) { return; }
+    var text = ($("callSay").value || "").trim();
+    if (!text) { return; }
+    $("callSay").value = "";
+    callPush("me", text);
+    $("callSend").disabled = true;
+    api("/api/dialogue", {
+      sessionId: state.sessionId, partyId: state.call.pid, text: text,
+      channel: "phone", offline: state.offline
+    }).then(function (d) {
+      state.call.turns += 1;
+      var note = "";
+      if (d.overstep) { note = "⚠ 越界承诺：你答应了无权答应或做不到的事"; }
+      callPush("them", d.reply, note);
+      if (d.view) { state.view = d.view; }
+    }).catch(function (e) {
+      callPush("them", "（信号不好：" + e.message + "）");
+    }).then(function () { $("callSend").disabled = false; $("callSay").focus(); });
+  });
+  $("callHang").addEventListener("click", hangUp);
+  $("callOverlay").addEventListener("click", function (ev) {
+    if (ev.target === $("callOverlay")) { hangUp(); }
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && !$("callOverlay").hidden) { hangUp(); }
+  });
 
   // 手机事件
   $("btnPhone").addEventListener("click", function () { openPhone("home"); });

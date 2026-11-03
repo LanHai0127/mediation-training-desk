@@ -72,7 +72,9 @@ def main() -> int:
 
     code, cases = call("/api/cases")
     check(code == 200 and cases.get("cases"), "GET /api/cases 至少返回一个案子")
-    cid = cases["cases"][0]["id"]
+    # 白名单测试要用带 f_audio 的案子：现在第一个案子是电话案，没有这条事实
+    all_ids = [c["id"] for c in cases.get("cases") or []]
+    cid = "case_01_noise" if "case_01_noise" in all_ids else all_ids[0]
 
     code, s = call("/api/session", {"caseId": cid})
     sid = (s.get("view") or {}).get("sessionId", "")

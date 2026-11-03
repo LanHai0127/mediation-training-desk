@@ -26,6 +26,16 @@
   var DEPTH = 0.8;            // 纵深压缩：世界 y 差 1 → 屏幕 y 差 0.8
   var INTERACT_RANGE = 120;   // 走到多近才能"查看"
 
+  // 地面材质配色：[远端, 近端]。同一间屋子和一块球场必须一眼分得开。
+  var GROUND_COLORS = {
+    wood: ["#e6d9c4", "#dccbb0"],
+    tile: ["#ecebe6", "#e0ded6"],
+    concrete: ["#dfdcd2", "#d3cfc3"],
+    dirt: ["#d8c8ac", "#cbb894"],
+    grass: ["#cfd9bd", "#bccda6"],
+    court: ["#5f7fa6", "#4d6c92"]
+  };
+
   var PALETTE = {
     wallFar: "#dfe3ea",
     wallNear: "#e9ecf1",
@@ -282,6 +292,228 @@
       rect(ctx, -33 * k, -94 * k, 66 * k, 4 * k, "#b9c1cb");
       rect(ctx, -33 * k, -36 * k, 66 * k, 4 * k, "#b9c1cb");
     },
+    // -------------------------------------------------- 派出所值班室
+    duty_desk: function (ctx, k) {
+      var w = 110 * k;
+      shadow(ctx, 56, k);
+      roundRect(ctx, -w / 2, -52 * k, w, 12 * k, 3 * k, "#b9b4ac");
+      roundRect(ctx, -w / 2, -52 * k, w, 4 * k, 2 * k, "#cfcac2");
+      rect(ctx, -w / 2 + 8 * k, -40 * k, 8 * k, 40 * k, "#8f8a83");
+      rect(ctx, w / 2 - 16 * k, -40 * k, 8 * k, 40 * k, "#8f8a83");
+      // 台面上的显示器与座机
+      roundRect(ctx, -30 * k, -86 * k, 34 * k, 26 * k, 3 * k, PALETTE.screen);
+      rect(ctx, -26 * k, -82 * k, 26 * k, 18 * k, "#33414f");
+      rect(ctx, -14 * k, -60 * k, 4 * k, 8 * k, "#6b7480");
+      roundRect(ctx, 14 * k, -62 * k, 22 * k, 10 * k, 2 * k, "#3f4a56");
+      rect(ctx, 24 * k, -66 * k, 12 * k, 5 * k, "#2b323a");
+      // 登记簿
+      roundRect(ctx, -48 * k, -60 * k, 18 * k, 10 * k, 2 * k, PALETTE.white);
+    },
+    phone_set: function (ctx, k) {
+      shadow(ctx, 16, k);
+      roundRect(ctx, -14 * k, -20 * k, 28 * k, 10 * k, 2 * k, "#3f4a56");
+      rect(ctx, -6 * k, -26 * k, 12 * k, 7 * k, "#2b323a");
+      ctx.strokeStyle = "#3f4a56";
+      ctx.lineWidth = 2.5 * k;
+      ctx.beginPath();
+      ctx.moveTo(-12 * k, -20 * k);
+      ctx.quadraticCurveTo(-18 * k, -34 * k, -10 * k, -40 * k);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(-10 * k, -42 * k, 3.5 * k, 0, Math.PI * 2);
+      ctx.fillStyle = "#3f4a56";
+      ctx.fill();
+    },
+    notice_wall: function (ctx, k) {
+      roundRect(ctx, -46 * k, -96 * k, 92 * k, 62 * k, 3 * k, "#f2f1ec");
+      rect(ctx, -46 * k, -96 * k, 92 * k, 10 * k, PALETTE.brand);
+      var colors = ["#ffffff", "#fdf3e3", "#eef4ff", "#ffffff"];
+      for (var i = 0; i < 4; i++) {
+        rect(ctx, -40 * k + (i % 2) * 44 * k, -82 * k + Math.floor(i / 2) * 26 * k,
+             36 * k, 20 * k, colors[i]);
+        rect(ctx, -36 * k + (i % 2) * 44 * k, -76 * k + Math.floor(i / 2) * 26 * k,
+             26 * k, 2 * k, "#c9c4ba");
+      }
+    },
+    radio_stand: function (ctx, k) {
+      shadow(ctx, 18, k);
+      roundRect(ctx, -18 * k, -14 * k, 36 * k, 8 * k, 2 * k, "#2b323a");
+      for (var i = 0; i < 2; i++) {
+        rect(ctx, -12 * k + i * 14 * k, -34 * k, 7 * k, 20 * k, "#3f4a56");
+        rect(ctx, -12 * k + i * 14 * k, -38 * k, 7 * k, 5 * k, "#6b7480");
+      }
+      rect(ctx, 10 * k, -20 * k, 4 * k, 2 * k, "#7ac47f");
+    },
+
+    // -------------------------------------------------- 篮球场
+    hoop: function (ctx, k) {
+      shadow(ctx, 26, k);
+      rect(ctx, -4 * k, -150 * k, 8 * k, 150 * k, "#5b6672");
+      rect(ctx, -26 * k, -150 * k, 52 * k, 5 * k, "#4c5661");
+      roundRect(ctx, -34 * k, -148 * k, 68 * k, 46 * k, 3 * k, "#e9eef2");
+      rect(ctx, -34 * k, -148 * k, 68 * k, 3 * k, "#d3dae0");
+      ctx.strokeStyle = "#c8593f";
+      ctx.lineWidth = 2 * k;
+      ctx.strokeRect(-9 * k, -128 * k, 18 * k, 14 * k);
+      ctx.beginPath();
+      ctx.arc(0, -118 * k, 9 * k, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, -104 * k, 8 * k, 0, Math.PI);
+      ctx.strokeStyle = "#e0642f";
+      ctx.lineWidth = 2.5 * k;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.85)";
+      ctx.lineWidth = 1 * k;
+      for (var i = -3; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 2.4 * k, -104 * k);
+        ctx.lineTo(i * 2.4 * k, -94 * k);
+        ctx.stroke();
+      }
+      for (var j = 0; j < 3; j++) {
+        ctx.beginPath();
+        ctx.moveTo(-7 * k, -101 * k + j * 3.5 * k);
+        ctx.quadraticCurveTo(0, -99 * k + j * 3.5 * k, 7 * k, -101 * k + j * 3.5 * k);
+        ctx.stroke();
+      }
+    },
+    speaker_box: function (ctx, k) {
+      shadow(ctx, 20, k);
+      roundRect(ctx, -16 * k, -26 * k, 32 * k, 26 * k, 3 * k, "#2f3742");
+      ctx.beginPath();
+      ctx.arc(0, -13 * k, 8 * k, 0, Math.PI * 2);
+      ctx.fillStyle = "#4b5563";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, -13 * k, 3.4 * k, 0, Math.PI * 2);
+      ctx.fillStyle = "#8b95a1";
+      ctx.fill();
+      ctx.strokeStyle = "#3f4a56";
+      ctx.lineWidth = 2 * k;
+      ctx.beginPath();
+      ctx.arc(0, -30 * k, 9 * k, Math.PI, 0);
+      ctx.stroke();
+      rect(ctx, 10 * k, -22 * k, 3 * k, 2 * k, "#7ac47f");
+    },
+    bench_park: function (ctx, k) {
+      var w = 76 * k;
+      shadow(ctx, 44, k);
+      for (var i = 0; i < 3; i++) {
+        rect(ctx, -w / 2, -36 * k + i * 7 * k, w, 5 * k, "#a9805a");
+      }
+      for (var j = 0; j < 2; j++) {
+        rect(ctx, -w / 2 + 4 * k, -58 * k + j * 8 * k, w - 8 * k, 5 * k, "#b98b5e");
+      }
+      rect(ctx, -w / 2 + 6 * k, -30 * k, 4 * k, 30 * k, "#4c5661");
+      rect(ctx, w / 2 - 10 * k, -30 * k, 4 * k, 30 * k, "#4c5661");
+    },
+    lamp_post: function (ctx, k) {
+      rect(ctx, -2.5 * k, -170 * k, 5 * k, 170 * k, "#7d8792");
+      roundRect(ctx, -18 * k, -178 * k, 36 * k, 10 * k, 3 * k, "#5b6672");
+      rect(ctx, -14 * k, -176 * k, 28 * k, 4 * k, "#fff4d6");
+      ctx.beginPath();
+      ctx.moveTo(-16 * k, -176 * k);
+      ctx.lineTo(16 * k, -176 * k);
+      ctx.lineTo(34 * k, -120 * k);
+      ctx.lineTo(-34 * k, -120 * k);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(255,226,160,.16)";
+      ctx.fill();
+    },
+    fence: function (ctx, k) {
+      rect(ctx, -2 * k, -78 * k, 4 * k, 78 * k, "#7d8792");
+      rect(ctx, 54 * k, -74 * k, 4 * k, 74 * k, "#7d8792");
+      ctx.strokeStyle = "rgba(120,130,140,.55)";
+      ctx.lineWidth = 0.8 * k;
+      for (var i = 0; i < 7; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-2 * k + i * 8 * k, -76 * k);
+        ctx.lineTo(-2 * k + i * 8 * k, -2 * k);
+        ctx.stroke();
+      }
+      for (var j = 0; j < 6; j++) {
+        ctx.beginPath();
+        ctx.moveTo(-2 * k, -76 * k + j * 13 * k);
+        ctx.lineTo(58 * k, -76 * k + j * 13 * k);
+        ctx.stroke();
+      }
+      rect(ctx, -2 * k, -78 * k, 60 * k, 3 * k, "#7d8792");
+    },
+    trash_bin: function (ctx, k) {
+      shadow(ctx, 22, k);
+      roundRect(ctx, -18 * k, -40 * k, 17 * k, 40 * k, 3 * k, "#6b7480");
+      roundRect(ctx, 1 * k, -40 * k, 17 * k, 40 * k, 3 * k, "#4a7fa5");
+      rect(ctx, -18 * k, -44 * k, 17 * k, 5 * k, "#8b95a1");
+      rect(ctx, 1 * k, -44 * k, 17 * k, 5 * k, "#5a8fb5");
+    },
+
+    // -------------------------------------------------- 院墙与排水沟
+    ditch: function (ctx, k) {
+      roundRect(ctx, -70 * k, -14 * k, 140 * k, 14 * k, 3 * k, "#8d8779");
+      roundRect(ctx, -66 * k, -11 * k, 132 * k, 8 * k, 2 * k, "#7c9aa8");
+      ctx.globalAlpha = .55;
+      roundRect(ctx, -60 * k, -9 * k, 60 * k, 3 * k, 1.5 * k, "#a8c4cf");
+      ctx.globalAlpha = 1;
+      for (var i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.ellipse(-40 * k + i * 32 * k, -8 * k, 5 * k, 2.2 * k, .3, 0, Math.PI * 2);
+        ctx.fillStyle = "#b98b5e";
+        ctx.fill();
+      }
+    },
+    marker_stone: function (ctx, k) {
+      shadow(ctx, 22, k);
+      // 土堆
+      ctx.beginPath();
+      ctx.ellipse(0, -4 * k, 26 * k, 8 * k, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#b8a488";
+      ctx.fill();
+      // 石身
+      roundRect(ctx, -12 * k, -46 * k, 24 * k, 44 * k, 4 * k, "#cfc9be");
+      roundRect(ctx, -12 * k, -46 * k, 24 * k, 6 * k, 3 * k, "#e2dcd1");
+      // 刻痕
+      ctx.strokeStyle = "#a49d92";
+      ctx.lineWidth = 1.6 * k;
+      ctx.beginPath(); ctx.moveTo(-6 * k, -36 * k); ctx.lineTo(6 * k, -36 * k); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6 * k, -28 * k); ctx.lineTo(3 * k, -28 * k); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6 * k, -20 * k); ctx.lineTo(6 * k, -20 * k); ctx.stroke();
+    },
+
+    haystack: function (ctx, k) {
+      shadow(ctx, 34, k);
+      for (var i = 0; i < 4; i++) {
+        roundRect(ctx, -30 * k, -12 * k - i * 11 * k, 60 * k - i * 4 * k, 10 * k, 4 * k,
+                  i % 2 ? "#b98b5e" : "#a9805a");
+      }
+      roundRect(ctx, -34 * k, -58 * k, 68 * k, 8 * k, 3 * k, "#8a6240");
+    },
+    eave: function (ctx, k) {
+      shadow(ctx, 54, k);
+      // 屋檐主体压得很低，像贴着院墙的顶
+      roundRect(ctx, -54 * k, -26 * k, 108 * k, 8 * k, 2 * k, "#8a6240");
+      // 瓦垄：一排半圆瓦
+      for (var i = 0; i < 9; i++) {
+        ctx.beginPath();
+        ctx.arc(-48 * k + i * 12 * k, -26 * k, 6 * k, Math.PI, 0);
+        ctx.fillStyle = i % 2 ? "#a5553f" : "#b8624a";
+        ctx.fill();
+      }
+      // 瓦当与滴水
+      rect(ctx, -54 * k, -20 * k, 108 * k, 3 * k, "#6b4f3a");
+      for (var j = 0; j < 9; j++) {
+        ctx.beginPath();
+        ctx.arc(-48 * k + j * 12 * k, -17 * k, 1.8 * k, 0, Math.PI);
+        ctx.fillStyle = "#8a6240";
+        ctx.fill();
+      }
+      // 檐下的阴影
+      ctx.globalAlpha = .18;
+      roundRect(ctx, -54 * k, -14 * k, 108 * k, 10 * k, 2 * k, "#3b3025");
+      ctx.globalAlpha = 1;
+    },
+
+
     // -------------------------------------------------- 院外 / 楼道
     steps: function (ctx, k) {
       for (var i = 0; i < 3; i++) {
@@ -290,16 +522,35 @@
       }
     },
     wall_yard: function (ctx, k) {
-      shadow(ctx, 70, k);
-      rect(ctx, -70 * k, -62 * k, 140 * k, 62 * k, "#d7cdbb");
-      rect(ctx, -70 * k, -66 * k, 140 * k, 6 * k, "#c0b49e");
-      for (var i = 0; i < 6; i++) {
-        ctx.beginPath();
-        ctx.arc(-58 * k + i * 23 * k, -30 * k, 7 * k, 0, Math.PI * 2);
-        ctx.fillStyle = "#e4dccb";
-        ctx.fill();
+      shadow(ctx, 72, k);
+      // 墙体
+      roundRect(ctx, -70 * k, -62 * k, 140 * k, 62 * k, 2 * k, "#d7cdbb");
+      // 砖缝：横缝 + 错缝竖线，靠它才像"墙"而不是一块板
+      ctx.strokeStyle = "rgba(150,138,118,.55)";
+      ctx.lineWidth = 1 * k;
+      var rows = 5;
+      for (var r = 0; r < rows; r++) {
+        var y = -62 * k + (r + 1) * (62 / rows) * k;
+        ctx.beginPath(); ctx.moveTo(-70 * k, y); ctx.lineTo(70 * k, y); ctx.stroke();
+        var cols = 8;
+        for (var c = 0; c < cols; c++) {
+          var x = -70 * k + (c + (r % 2 ? 0.5 : 0)) * (140 / cols) * k;
+          if (x > 68 * k) { continue; }
+          ctx.beginPath();
+          ctx.moveTo(x, y - (62 / rows) * k);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
       }
+      // 墙帽与墙脚
+      rect(ctx, -72 * k, -66 * k, 144 * k, 5 * k, "#c0b49e");
+      rect(ctx, -70 * k, -3 * k, 140 * k, 3 * k, "rgba(120,105,85,.28)");
+      // 墙根一点苔痕
+      ctx.globalAlpha = .35;
+      roundRect(ctx, -66 * k, -8 * k, 42 * k, 6 * k, 3 * k, "#9aa87f");
+      ctx.globalAlpha = 1;
     },
+
     water_vat: function (ctx, k) {
       shadow(ctx, 26, k);
       ctx.beginPath();
@@ -513,6 +764,8 @@
     this.ctx = canvas.getContext("2d");
     this.data = data || { spots: [], setting: "room" };
     this.spots = (this.data.spots || []).slice();
+    this.chars = (this.data.characters || []).slice();
+    this.chars.forEach(function (c) { c._char = true; });   // 拾取时靠它区分"人"和"物件"
     this.blocked = buildGrid(this.spots);
     this.player = { x: this.data.spawn ? this.data.spawn.x : 300, y: this.data.spawn ? this.data.spawn.y : 700 };
     this.path = null;
@@ -526,6 +779,14 @@
     this.dpr = 1;
     this._bindInput();
     this.resize();
+    // 容器宽度会随右侧卡片加载、滚动条出现而变，只在 window.resize 里重算会漏
+    // ——漏了就会出现"画布只铺了半个舞台，右边一条空白"。用 ResizeObserver 盯住它。
+    var self = this;
+    if (global.ResizeObserver) {
+      var box = canvas.parentElement || canvas;
+      this._ro = new global.ResizeObserver(function () { self.resize(); });
+      this._ro.observe(box);
+    }
   }
 
   Scene.prototype.resize = function () {
@@ -534,6 +795,9 @@
     // 桌面 3:2；手机竖屏给高一点（画面更大，不然人只有指甲盖大）
     var ratio = cssW < 520 ? 0.86 : 2 / 3;
     var cssH = Math.round(cssW * ratio);
+    if (this.w === cssW && this.h === cssH && this.canvas.width) {
+      return;                     // 尺寸没变就不重画，避免 ResizeObserver 自激
+    }
     this.dpr = Math.min(2, global.devicePixelRatio || 1);
     this.canvas.width = Math.round(cssW * this.dpr);
     this.canvas.height = Math.round(cssH * this.dpr);
@@ -638,6 +902,11 @@
   };
 
   Scene.prototype.pick = function (x, y) {
+    // 人物是小目标，先让人——不然站在沙发前的人永远点不到
+    for (var j = 0; j < this.chars.length; j++) {
+      var c = this.chars[j];
+      if (Math.abs(x - c.x) <= 20 && y >= c.y - 60 && y <= c.y + 10) { return c; }
+    }
     // 从后往前找：后画的（更靠前的）优先命中
     var list = this.spots.slice().sort(function (a, b) { return b.y - a.y; });
     for (var i = 0; i < list.length; i++) {
@@ -650,6 +919,16 @@
   Scene.prototype.tap = function (sx, sy) {
     var p = this.unproject(sx, sy);
     var spot = this.pick(p.x, p.y);
+    if (spot && spot._char) {
+      // 选中一个人：走近，然后交给上层打开谈话
+      if (Math.hypot(this.player.x - spot.x, this.player.y - spot.y) <= INTERACT_RANGE) {
+        if (this.onPerson) { this.onPerson(spot); }
+        return;
+      }
+      this.walkTo(spot.x, spot.y + 34, null);
+      this._pendingPerson = spot;
+      return;
+    }
     if (spot) {
       var cx = spot.x + spot.w / 2, cy = spot.y + spot.h / 2;
       if (Math.hypot(this.player.x - cx, this.player.y - cy) <= INTERACT_RANGE) {
@@ -695,6 +974,12 @@
         this.path.shift();
         if (!this.path.length) {
           this.path = null;
+          if (this._pendingPerson) {
+            var pc = this._pendingPerson;
+            this._pendingPerson = null;
+            if (this.onPerson) { this.onPerson(pc); }
+            return;
+          }
           if (this.pending && this.onSpot) {
             var s = this.pending;
             this.pending = null;
@@ -728,13 +1013,19 @@
     this.drawFloor(ctx);
 
     // 画家算法：先画远的（y 小的），人插在中间
-    var items = this.spots.map(function (s) { return { y: s.y + s.h, kind: "spot", s: s }; });
+    // 排序键 = 脚底 y + 显式层级。屋檐这类"必须压在墙上面"的物件靠 layer 调，
+    // 光靠 y 排会出现"瓦檐被墙挡住一半"。
+    var items = this.spots.map(function (s) {
+      return { y: s.y + s.h + (s.layer || 0), kind: "spot", s: s };
+    });
+    this.chars.forEach(function (c) { items.push({ y: c.y, kind: "char", c: c }); });
     items.push({ y: this.player.y, kind: "player" });
     items.sort(function (a, b) { return a.y - b.y; });
 
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
       if (it.kind === "player") { this.drawPlayer(ctx); }
+      else if (it.kind === "char") { this.drawCharacter(ctx, it.c); }
       else { this.drawSpot(ctx, it.s); }
     }
     this.drawExitHint(ctx);
@@ -776,25 +1067,32 @@
     ctx.lineTo(bottomRight.sx, bottomRight.sy);
     ctx.lineTo(bottomLeft.sx, bottomLeft.sy);
     ctx.closePath();
-    var fkey = Math.round(topLeft.sy) + "|" + Math.round(bottomLeft.sy) + "|" + this.data.setting;
+    var ground = this.data.ground || "";
+    var fkey = Math.round(topLeft.sy) + "|" + Math.round(bottomLeft.sy) + "|" + ground;
     if (!this._floorGrad || this._floorKey !== fkey) {
       var g = ctx.createLinearGradient(0, topLeft.sy, 0, bottomLeft.sy);
-      if (this.data.setting === "room") {
-        g.addColorStop(0, "#ece6da");
-        g.addColorStop(1, PALETTE.floor);
-      } else {
-        g.addColorStop(0, "#dfdcd2");
-        g.addColorStop(1, "#d3cfc3");
-      }
+      var pair = GROUND_COLORS[ground] || GROUND_COLORS.concrete;
+      g.addColorStop(0, pair[0]);
+      g.addColorStop(1, pair[1]);
       this._floorGrad = g;
       this._floorKey = fkey;
     }
     ctx.fillStyle = this._floorGrad;
     ctx.fill();
 
-    // 地砖缝：越远越密，这是"透视"的第二个视觉证据
+    // 地面纹理：不同场地差别很大，靠它一眼认出"这是什么地方"
     ctx.save();
     ctx.clip();
+    if (ground === "court") {
+      this._courtLines(ctx);
+    } else if (ground === "grass") {
+      ctx.strokeStyle = "rgba(120,150,120,.18)";
+      ctx.lineWidth = 1;
+      for (var gx0 = -40; gx0 < WORLD.w + 40; gx0 += 46) {
+        var a0 = self.project(gx0, BACKDROP_Y), b0 = self.project(gx0 + 20, WORLD.h);
+        ctx.beginPath(); ctx.moveTo(a0.sx, a0.sy); ctx.lineTo(b0.sx, b0.sy); ctx.stroke();
+      }
+    }
     ctx.strokeStyle = PALETTE.floorLine;
     ctx.lineWidth = 1;
     for (var gy = BACKDROP_Y + 60; gy < WORLD.h; gy += 60) {
@@ -817,6 +1115,31 @@
     ctx.beginPath();
     ctx.moveTo(hl.sx, hl.sy);
     ctx.lineTo(hr.sx, hr.sy);
+    ctx.stroke();
+  };
+
+  // 半场白线：边线 + 罚球圈 + 底线。尺寸取自真实半场比例，缩到世界里刚好认得出。
+  Scene.prototype._courtLines = function (ctx) {
+    var self = this;
+    ctx.strokeStyle = "rgba(255,255,255,.72)";
+    ctx.lineWidth = 2.4;
+    function line(x1, y1, x2, y2) {
+      var a = self.project(x1, y1), b = self.project(x2, y2);
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    }
+    line(120, 180, 1280, 180);          // 底线
+    line(120, 180, 120, 760);           // 左边线
+    line(1280, 180, 1280, 760);         // 右边线
+    line(120, 480, 1280, 480);          // 中线
+    // 罚球圈
+    var cx = 600, cy = 480;
+    ctx.beginPath();
+    for (var i = 0; i <= 36; i++) {
+      var ang = Math.PI * 2 * i / 36;
+      var p = self.project(cx + Math.cos(ang) * 110, cy + Math.sin(ang) * 52);
+      if (i === 0) { ctx.moveTo(p.sx, p.sy); } else { ctx.lineTo(p.sx, p.sy); }
+    }
+    ctx.closePath();
     ctx.stroke();
   };
 
@@ -861,6 +1184,74 @@
       roundRect(ctx, p.sx - tw / 2, top - 20, tw, 19, 6, "rgba(29,78,216,.92)");
       ctx.fillStyle = "#fff";
       ctx.fillText(label, p.sx, top - 6);
+    }
+  };
+
+  // 站位人物：固定位置、只有待机微动（呼吸感的上下浮），不走路。
+  Scene.prototype.drawCharacter = function (ctx, ch) {
+    var p = this.project(ch.x, ch.y);
+    var k = p.k * this.artScale();
+    var sit = ch.pose === "sit";
+    var breathe = Math.sin(this.time * 1.4 + (ch.x + ch.y) * 0.01) * 0.8 * k;
+    ctx.save();
+    ctx.translate(p.sx, p.sy + (sit ? 6 * k : 0));
+    ctx.scale(ch.facing === -1 ? -1 : 1, 1);
+
+    // 影子
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 13 * k, 4.5 * k, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(50,40,30,.18)";
+    ctx.fill();
+
+    var bodyTop = sit ? -30 : -40;
+    var headY = sit ? -37 : -47;
+
+    // 腿
+    ctx.strokeStyle = ch.pants || "#3c4652";
+    ctx.lineWidth = 5 * k;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    if (sit) {
+      ctx.moveTo(-3 * k, -14 * k); ctx.lineTo(-6 * k, -4 * k);
+      ctx.moveTo(3 * k, -14 * k); ctx.lineTo(9 * k, -6 * k);
+    } else {
+      ctx.moveTo(-3 * k, -16 * k); ctx.lineTo(-3 * k, -1 * k);
+      ctx.moveTo(3 * k, -16 * k); ctx.lineTo(3 * k, -1 * k);
+    }
+    ctx.stroke();
+
+    // 身体
+    roundRect(ctx, -9 * k, (bodyTop - 10) * k + breathe, 18 * k, 26 * k, 5 * k, ch.color || "#7c8a99");
+    if (ch.vest) {
+      roundRect(ctx, -8 * k, (bodyTop - 4) * k + breathe, 16 * k, 18 * k, 3 * k, ch.vest);
+    }
+
+    // 头与头发
+    ctx.beginPath();
+    ctx.arc(0, headY * k + breathe, 8 * k, 0, Math.PI * 2);
+    ctx.fillStyle = "#e8c9a8";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, headY * k - 3 * k + breathe, 8 * k, Math.PI, 0);
+    ctx.fillStyle = ch.hair || "#2b3138";
+    ctx.fill();
+    if (ch.bun) {
+      ctx.beginPath();
+      ctx.arc(-6 * k, headY * k - 6 * k + breathe, 3 * k, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 名牌：悬停或走近时显示
+    if (this.hover === ch.id || this.nearChar === ch.id) {
+      var top = p.sy - (headY - 20) * k;
+      ctx.font = "600 12px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      var label = ch.label || "";
+      var tw = ctx.measureText(label).width + 16;
+      roundRect(ctx, p.sx - tw / 2, top - 19, tw, 19, 6, "rgba(29,78,216,.92)");
+      ctx.fillStyle = "#fff";
+      ctx.fillText(label, p.sx, top - 5);
     }
   };
 
@@ -924,6 +1315,8 @@
 
   Scene.prototype.setSpots = function (spots) {
     this.spots = (spots || []).slice();
+    this.chars = (this.data.characters || []).slice();
+    this.chars.forEach(function (c) { c._char = true; });   // 拾取时靠它区分"人"和"物件"
     this.blocked = buildGrid(this.spots);
   };
 

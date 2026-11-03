@@ -220,6 +220,22 @@
   </div>
 </div>
 
+<!-- 通话浮层：电话里办案，全程不用出现场 -->
+<div class="call-overlay" id="callOverlay" hidden>
+  <div class="call-card" role="dialog" aria-modal="true" aria-label="通话中">
+    <div class="call-head">
+      <div class="call-who"><b id="callName">—</b><span id="callRole"></span></div>
+      <div class="call-timer" id="callTimer">00:00</div>
+    </div>
+    <div class="call-thread" id="callThread"></div>
+    <form class="call-composer" id="callForm" autocomplete="off">
+      <input id="callSay" maxlength="200" placeholder="电话里说…">
+      <button type="submit" id="callSend">说</button>
+    </form>
+    <button class="call-hang" id="callHang">挂断</button>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
 
 <button class="fab" id="btnReopen" hidden>看复盘</button>

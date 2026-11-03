@@ -52,6 +52,8 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("test_laws", ["tools/test_laws.py"], False),
     # S5：对话层——拔模型能走、不复读、不返回判定、事实白名单。
     ("test_llm", ["tools/test_llm.py"], True),
+    # 电话通道：拨号、轮次、挂断、电话算单独沟通。
+    ("test_call", ["tools/test_call.py"], True),
     # 记事本：增删改 + 「空着不许交方案」的门槛。
     ("test_notes", ["tools/test_notes.py"], True),
     # 接口边界：乱传参数、并发提交、超长文本。
