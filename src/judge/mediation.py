@@ -183,6 +183,28 @@ class MediationJudge:
         dim_avg = sum(qualities) / len(qualities) if qualities else 0.0
         total = W_COVERAGE * coverage + W_DIMS * dim_avg + W_PROCESS * process
 
+        # ---------------- 组合破裂（数据声明的规则，优先于常规路由）
+        # 例（院墙案）：当面翻三十年旧账 → 直接破裂；当众念法条 + 写成张家赔偿 → 办成治安处罚。
+        # 这类"一选就翻车"的规则只能由案子声明——判定内核不认案子，所以内核只负责执行。
+        for rule in self.case.get("ruptures") or []:
+            when = rule.get("when") or {}
+            if when and all(plan.get(dim) in (vals if isinstance(vals, list) else [vals])
+                            for dim, vals in when.items()):
+                ending = rule.get("ending", "rupture")
+                verdict = rule.get("verdict", "不合格")
+                why = rule.get("why", "")
+                audit.append({"step": "rupture", "rule": rule["id"], "when": when,
+                              "ending": ending, "verdict": verdict})
+                return {"ok": True, "mode": mode, "ending": ending, "verdict": verdict, "why": why,
+                        "coverage": coverage, "ceiling": ceiling, "total": total,
+                        "confidence": conf, "route": "rupture", "dims": dim_rows,
+                        "process": {"separateTalk": separate_done, "oversteps": oversteps,
+                                    "score": round(process, 4)},
+                        "missingFacts": sorted(set(missing_facts)),
+                        "unavailable": unavailable, "invalidPlan": invalid_plans,
+                        "satisfiedNeeds": sorted(satisfied),
+                        "rupture": rule["id"], "audit": audit}
+
         # ---------------- 结局路由
         unanswered = [r["id"] for r in dim_rows if not r.get("chosen")]
         ending, verdict, why = self._route(mode, ceiling, total, oversteps, separate_done,

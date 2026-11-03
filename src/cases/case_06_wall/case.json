@@ -518,6 +518,10 @@
     "rupture_referred": {
       "label": "依法告知并转办",
       "text": "地界争议归自然资源部门确权，民事赔偿走诉讼——把路指清楚比硬压一份协议负责。"
+    },
+    "rupture": {
+      "label": "调解破裂",
+      "text": "有人当场离席。破裂不是失败，但要分清是「本来就谈不成」还是「被你谈崩的」。"
     }
   },
   "scenes": [
@@ -812,6 +816,33 @@
           "pants": "#4b5563"
         }
       ]
+    }
+  ],
+  "ruptures": [
+    {
+      "id": "r_flip_old",
+      "when": {
+        "dim_boundary": [
+          "o_old"
+        ]
+      },
+      "ending": "rupture",
+      "verdict": "不合格",
+      "why": "当着两家把三十年前的口头约定翻出来对质，张守义当场拍桌子走人——这种旧账只能靠档案说话，靠嘴问就是把人逼到墙角"
+    },
+    {
+      "id": "r_punish",
+      "when": {
+        "dim_face": [
+          "o_public"
+        ],
+        "dim_pay": [
+          "o_blame_b"
+        ]
+      },
+      "ending": "forced_agreement",
+      "verdict": "不合格",
+      "why": "当众念法条，又把补偿写成张家赔偿：一桩邻里纠纷被办成了治安处罚，两家都不认，协议签了也执行不了"
     }
   ]
 }

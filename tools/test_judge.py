@@ -143,6 +143,17 @@ def main() -> int:
     early = wj.evaluate(wplan, ctx_for(wall, 0.7), "refer")
     check(early["ending"] == "early_giveup", "还有余地就转办 → 判不合格", early["ending"])
 
+    # 组合破裂：选项组合命中 → 直接破裂，不等分数（数据声明，内核执行）
+    flip = wj.evaluate(dict(wplan, dim_boundary="o_old"), ctx_for(wall, 0.7), "agreement")
+    check(flip["ending"] == "rupture" and flip["verdict"] == "不合格",
+          "翻三十年旧账 → 直接破裂（不等分数）", "%s/%s" % (flip["ending"], flip["verdict"]))
+    check(any(a["step"] == "rupture" for a in flip["audit"]),
+          "破裂规则写进审计日志（可复盘）")
+    punish = wj.evaluate(dict(wplan, dim_pay="o_blame_b", dim_face="o_public"),
+                         ctx_for(wall, 0.7), "agreement")
+    check(punish["ending"] == "forced_agreement",
+          "当众念法条 + 写成一方赔偿 → 治安化不合格", punish["ending"])
+
     # ---------------------------------------------------------- 可复盘
     audit = r_ok["audit"]
     check(len([a for a in audit if a["step"] == "dim"]) == len(case["dimensions"]),
