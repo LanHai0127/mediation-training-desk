@@ -53,7 +53,7 @@ def call(path: str, body=None):
         return 0, {"error": str(e)}
 
 
-def new_session(cid: str = "case_01_noise", with_note: bool = True) -> str:
+def new_session(cid: str = "case_05_court", with_note: bool = True) -> str:
     """建会话；默认顺手写一条笔记——提交有「记事本不许空」的门槛，不写就测不到后面的东西。"""
     _, d = call("/api/session", {"caseId": cid})
     sid = (d.get("view") or {}).get("sessionId", "")
@@ -65,7 +65,7 @@ def new_session(cid: str = "case_01_noise", with_note: bool = True) -> str:
 def main() -> int:
     _, cases = call("/api/cases")
     ids = [c["id"] for c in cases.get("cases") or []]
-    check(len(ids) >= 4, "四个案子都在（%d）" % len(ids))
+    check(len(ids) == 3, "三个案子都在（%d）" % len(ids))
 
     # 不存在的案子
     code, d = call("/api/session", {"caseId": "case_does_not_exist"})
@@ -147,8 +147,8 @@ def main() -> int:
     check(bool(a.get("text")) and "教学演练生成" in a.get("text", ""), "报告文本带合规页脚")
 
     # 换案子后维度数量不同，也必须能提交
-    sid3 = new_session("case_04_wage")
-    _, cs = call("/api/case/case_04_wage")
+    sid3 = new_session("case_06_wall")
+    _, cs = call("/api/case/case_06_wall")
     dims = [d["id"] for d in cs.get("dimensions") or []]
     plan4 = {dims[0]: (cs["dimensions"][0]["options"][0]["id"]),
              dims[1]: (cs["dimensions"][1]["options"][0]["id"]),
@@ -156,7 +156,7 @@ def main() -> int:
              dims[3]: (cs["dimensions"][3]["options"][0]["id"])}
     code, r = call("/api/submit", {"sessionId": sid3, "plan": plan4, "mode": "agreement"})
     check(code == 200 and r.get("ending") not in ("bad_plan",),
-          "三方欠薪案能正常判（%s）" % r.get("ending"))
+          "五维三方院墙案能正常判（%s）" % r.get("ending"))
 
     print("-" * 60)
     print("通过 %d ｜ 失败 %d" % (passed, failed))

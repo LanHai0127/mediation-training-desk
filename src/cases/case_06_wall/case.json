@@ -308,7 +308,13 @@
           "evidence": [
             "f_archive",
             "f_marker"
-          ]
+          ],
+          "requires": {
+            "trust": {
+              "p_b": 0.45
+            }
+          },
+          "note": ""
         },
         {
           "id": "o_old",

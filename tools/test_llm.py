@@ -72,9 +72,9 @@ def main() -> int:
 
     code, cases = call("/api/cases")
     check(code == 200 and cases.get("cases"), "GET /api/cases 至少返回一个案子")
-    # 白名单测试要用带 f_audio 的案子：现在第一个案子是电话案，没有这条事实
+    # 白名单测试要用带 f_noise 的案子（球场案）
     all_ids = [c["id"] for c in cases.get("cases") or []]
-    cid = "case_01_noise" if "case_01_noise" in all_ids else all_ids[0]
+    cid = "case_05_court" if "case_05_court" in all_ids else all_ids[0]
 
     code, s = call("/api/session", {"caseId": cid})
     sid = (s.get("view") or {}).get("sessionId", "")
@@ -124,8 +124,8 @@ def main() -> int:
     from game.dialogue import Dialogue  # noqa: E402
     case = json.loads((ROOT / "src" / "cases" / cid / "case.json").read_text(encoding="utf-8"))
     dlg = Dialogue(case)
-    kept = dlg._filter_facts("他承认了【事实:f_audio】，还有【事实:f_fake】这回事")
-    check("f_audio" in kept and "f_fake" not in kept,
+    kept = dlg._filter_facts("他承认了【事实:f_noise】，还有【事实:f_fake】这回事")
+    check("f_noise" in kept and "f_fake" not in kept,
           "事实白名单：案子里的保留，编出来的删掉", kept)
 
     print("-" * 60)

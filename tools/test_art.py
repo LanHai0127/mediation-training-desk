@@ -27,6 +27,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SCENE_JS = ROOT / "src" / "web" / "scene.js"
 CASES = ROOT / "src" / "cases"
 
+# 预留件：绘制实现保留，但当前三案用不到（S2 室内场景做回来就会用到）。
+# 加白名单是为了不误伤，但白名单本身也要被检查——写错名字同样会红。
+RESERVED = {
+    "sofa", "tea_table", "tv", "dining_table", "shoe_cabinet", "radiator",
+    "window", "clothesline", "steps", "e_bike", "pole",
+}
+
 passed = failed = 0
 
 
@@ -60,13 +67,13 @@ def data_kinds() -> dict[str, set[str]]:
     return out
 
 
-def contract_ok(reg: set[str], used: set[str]) -> list[str]:
+def contract_ok(reg: set[str], used: set[str], reserved: set[str] | None = None) -> list[str]:
     """返回问题清单；空列表 = 契约成立。抽成函数是为了能对"故意拼错"做反向验证。"""
     problems = []
     missing = used - reg
     if missing:
         problems.append("数据用了注册表没有的 kind：%s" % "、".join(sorted(missing)))
-    dead = reg - used
+    dead = reg - used - (reserved or set())
     if dead:
         problems.append("注册了但没有任何案子用到（死代码）：%s" % "、".join(sorted(dead)))
     return problems
@@ -94,8 +101,10 @@ def main() -> int:
         used |= kinds
     check(bool(used), "案子数据里读到了 kind（%d 个案子）" % len(per_case))
 
-    problems = contract_ok(reg, used)
-    check(not problems, "双向契约成立：数据 ⊆ 注册表，注册表 ⊆ 数据", "；".join(problems))
+    problems = contract_ok(reg, used, RESERVED)
+    check(not problems, "双向契约成立：数据 ⊆ 注册表，注册表 ⊆ 数据（预留件除外）", "；".join(problems))
+    check(not (RESERVED - reg), "预留清单里的 kind 都真实存在（白名单不许写错）",
+          "、".join(sorted(RESERVED - reg)))
 
     # ④ 反向验证：把某个 kind 拼错一个字母，契约必须报错
     if used:

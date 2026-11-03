@@ -19,8 +19,8 @@ BASE = "http://127.0.0.1:%d" % int(os.environ.get("TJ_PORT") or 8770)
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 passed = failed = 0
-PLAN = {"dim_claim": "o_sleep", "dim_bottom": "o_both",
-        "dim_evidence": "o_facts", "dim_face": "o_face_both"}
+PLAN = {"dim_claim": "o_rule", "dim_bottom": "o_both",
+        "dim_evidence": "o_record", "dim_face": "o_face"}
 
 
 def check(ok: bool, msg: str, detail: str = "") -> None:
@@ -51,7 +51,7 @@ def call(path: str, body=None):
 
 
 def new_session() -> str:
-    _, d = call("/api/session", {"caseId": "case_01_noise"})
+    _, d = call("/api/session", {"caseId": "case_05_court"})
     return (d.get("view") or {}).get("sessionId", "")
 
 

@@ -111,9 +111,9 @@ def main() -> int:
         check(js("window.__scene.path === null") is True, "拖动不会被当成点击走路")
 
         # ---------- 2. 选案切换
-        goto(BASE + "/?case=case_02_pet")
+        goto(BASE + "/?case=case_05_court")
         title = js("document.getElementById('caseTitle').textContent")
-        check("狗" in (title or ""), "选案参数生效（切到第二个案子）", title)
+        check("球场" in (title or ""), "选案参数生效（切到球场案）", title)
 
         # ---------- 2.5 手机记事本：打开 → 新写 → 保存 → 徽标 +1
         js("document.getElementById('btnPhone').click(); true")
@@ -196,7 +196,7 @@ def main() -> int:
         # ---------- 7. 手机 390：没有横向溢出
         cdp.call("Emulation.setDeviceMetricsOverride",
                  {"width": 390, "height": 844, "deviceScaleFactor": 2, "mobile": True})
-        goto(BASE + "/?case=case_03_falling")
+        goto(BASE + "/?case=case_06_wall")
         mobile = js("(() => ({vw: innerWidth, sw: document.documentElement.scrollWidth,"
                     " cw: document.getElementById('scene').clientWidth}))()")
         check(mobile["sw"] <= mobile["vw"] + 1,
