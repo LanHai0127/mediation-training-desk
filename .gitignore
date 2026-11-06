@@ -10,3 +10,10 @@ __pycache__/
 
 # 助手运行态
 .workbuddy/
+
+# 本地过程文档，不入库
+README.md
+PROJECT.md
+TASKS.md
+docs/QA_通关报告.md
+
