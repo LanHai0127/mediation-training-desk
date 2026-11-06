@@ -62,6 +62,9 @@ SUITES: list[tuple[str, list[str], bool]] = [
     ("test_scene3d", ["tools/test_scene3d.py"], True),
     # 浏览器交互（需 websocket-client；普通解释器会自动 SKIP 并在汇总里注明）。
     ("test_ui", ["tools/test_ui.py"], True),
+    # 外壳主线（app.html）：密码门 / 加载页 / 场景 / 手机 / 传送 / 评价 / 复盘 / 视口。
+    # 零第三方依赖（CDP 用标准库自己实现的 WebSocket），任何 Python 3 都能跑。
+    ("test_app", ["tools/test_app.py"], True),
 ]
 
 LOG_DIR = ROOT / "tools" / "_logs"

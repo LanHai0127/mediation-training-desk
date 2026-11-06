@@ -34,6 +34,12 @@ PATIENCE_WORDS = ("别急", "慢慢", "坐下", "喝口水", "先说说", "你�
 # 越界承诺的迹象：答应了自己无权答应或做不到的事
 OVERSTEP = re.compile(r"(保证|一定|肯定).{0,6}(三天|明天|马上|立刻|全部|都|不再|永远)")
 
+# 跨通道记忆：每个当事人单独记最近几条消息，电话 / 当面 / 单独谈共用。
+# 不记全量（省 token，也避免把早期无关的话一直塞给模型），8 条 ≈ 4 轮。
+HISTORY_MAX_MESSAGES = 8
+HISTORY_MAX_CHARS = 1400
+CHANNEL_LABEL = {"phone": "电话", "separate": "当面单独", "face": "当面"}
+
 
 class Dialogue:
     def __init__(self, case: dict[str, Any], client: Any = None) -> None:
@@ -43,10 +49,14 @@ class Dialogue:
         self.oversteps = 0          # 越界承诺累计次数，过程分要用（不参与任何单轮判定）
         self.facts = {f["id"]: f for f in (case.get("facts") or [])}
         self.state: dict[str, dict[str, Any]] = {}
+        # 对话记忆：key = partyId，value = [{"role": "user"/"assistant", "content": ...}]
+        # 电话里说过的话，线下见面时也要能接上；反之亦然。
+        self.history: dict[str, list[dict[str, str]]] = {}
         for pid in self.parties:
             self.state[pid] = {"trust": 0.35, "mood": 0.42, "turn": 0,
                                "lastIntent": "", "lastText": "", "repeat": 0,
                                "revealed": False}
+            self.history[pid] = []
 
     # ------------------------------------------------------------ 对外
     def talk(self, party_id: str, text: str, channel: str = "face") -> dict[str, Any]:
@@ -71,9 +81,13 @@ class Dialogue:
             self.oversteps += 1
         reply, used_llm = self._render(party_id, party, text, intent, channel, repeat)
 
-        # 隐情只在"单独谈话 + 信任够"时吐一次，且只吐一次
+        # 记进这个当事人的跨通道记忆：电话 / 当面 / 单独谈共用一条时间线，
+        # 下一轮 _prompt 会把它带给模型，所以"电话里答应的，见面还认"。
+        self._remember(party_id, text, reply, channel)
+
+        # 隐情只在"单独沟通 + 信任够"时吐一次：当面单独谈、或电话里（同样没有第三方在场）。
         reveal = ""
-        if channel == "separate" and st["trust"] >= 0.62 and not st["revealed"]:
+        if channel in ("separate", "phone") and st["trust"] >= 0.62 and not st["revealed"]:
             st["revealed"] = True
             reveal = party.get("hidden", "")
 
@@ -86,6 +100,20 @@ class Dialogue:
             "reveal": reveal,
             "overstep": overstep,
         }
+
+    def _remember(self, party_id: str, text: str, reply: str, channel: str) -> None:
+        """把这一轮记进该当事人的跨通道记忆（只留最近几条，控制 prompt 长度）。"""
+        h = self.history.setdefault(party_id, [])
+        label = CHANNEL_LABEL.get(channel, "当面")
+        said = (text or "").strip()
+        if said:
+            h.append({"role": "user", "content": "（" + label + "）" + said})
+        if reply:
+            h.append({"role": "assistant", "content": str(reply)})
+        while len(h) > HISTORY_MAX_MESSAGES:
+            h.pop(0)
+        while len(h) > 2 and sum(len(m.get("content") or "") for m in h) > HISTORY_MAX_CHARS:
+            h.pop(0)
 
     # ------------------------------------------------------------ 规则层
     @staticmethod
@@ -114,8 +142,8 @@ class Dialogue:
         if repeat:
             d["mood"] -= 0.10          # 同一句反复问，人会烦
             d["trust"] -= 0.02
-        if channel == "separate":
-            d["trust"] += 0.04          # 单独说话更容易松口
+        if channel in ("separate", "phone"):
+            d["trust"] += 0.04          # 单独说话 / 私下通电话，更容易松口
         # 越界承诺：当场答应做不到的事，信任短暂上升，但记一笔越界
         if OVERSTEP.search(text or ""):
             d["trust"] += 0.06
@@ -137,24 +165,39 @@ class Dialogue:
         st = self.state[party_id]
         mood = "很冲" if st["mood"] < 0.3 else ("还算平静" if st["mood"] < 0.65 else "愿意谈")
         trust = "戒备" if st["trust"] < 0.4 else ("开始松口" if st["trust"] < 0.7 else "愿意交底")
-        channel_txt = "现在是你和他单独说话，没有第三方在场" if channel == "separate" else "现在是当着对方的面说话"
+        if channel == "phone":
+            channel_txt = "现在是你和他通电话，只有你们两个人，没有第三方在场"
+        elif channel == "separate":
+            channel_txt = "现在是你和他单独说话，没有第三方在场"
+        else:
+            channel_txt = "现在是当着对方的面说话"
         fact_list = "；".join(f"{f['title']}：{f['text']}" for f in self.facts.values())
+        revealed_txt = ("你已经把心里那件事（上面那条）告诉过他了。"
+                        if st.get("revealed") else "你还没把心里那件事说出口。")
         system = (
             f"你在扮演一位基层矛盾纠纷调解中的当事人，不是助手，不要解释自己在扮演。\n"
             f"人物：{party['name']}，{party['role']}，{party['job']}，{party['age']} 岁。\n"
             f"性格底色：{party['baseline']}。\n"
             f"你现在情绪：{mood}；对民警的态度：{trust}。{channel_txt}。\n"
+            f"你们之前已经聊过（可能是打电话，也可能是当面）。下面会附上最近几条对话记录，"
+            f"每条前面标了「（电话）」「（当面单独）」「（当面）」。\n"
             f"你心里真正在意、但不一定会说的事：{party.get('hidden','')}\n"
+            f"{revealed_txt}\n"
             f"你知道的事实只有这些：{fact_list}\n\n"
             f"要求：\n"
             f"1. 只输出当事人说的一句话，20~45 字，口语，像真人说话，可以带停顿和语气词。\n"
             f"2. 不要旁白、不要引号、不要写「他说」之类，不要提自己是 AI。\n"
             f"3. 不要引用具体法条条号，不要编造卷宗以外的事实、人名、数字。\n"
             f"4. 情绪低的时候可以甩话、回避、反问，不要一味配合。\n"
-            f"5. {('对方刚刚问过一模一样的话，你要表现出不耐烦。') if repeat else '顺着对方这句话回应。'}"
+            f"5. {('对方刚刚问过一模一样的话，你要表现出不耐烦。') if repeat else '顺着对方这句话回应。'}\n"
+            f"6. 记得对方在之前对话里说过的话、答应过的事（尤其是电话里答应的）；"
+            f"能接上就接上，不要重复问已经问过、已经答过的事。"
         )
-        return [{"role": "system", "content": system},
-                {"role": "user", "content": text}]
+        prior = self.history.get(party_id) or []
+        messages: list[dict[str, str]] = [{"role": "system", "content": system}]
+        messages.extend(prior[-HISTORY_MAX_MESSAGES:])
+        messages.append({"role": "user", "content": text})
+        return messages
 
     def _filter_facts(self, text: str) -> str:
         """白名单过滤：模型编出来的「【事实:xxx】」只要不在案子里就整段删掉。

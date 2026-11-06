@@ -182,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
     #   也没有 on*= 事件属性 —— 注入进来的 <script> / onerror= 一律被浏览器拦掉。
     # · `style-src` 必须留 'unsafe-inline'：场景绘制与布局里有内联 style 属性（CSP3 回退到 style-src）。
     CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-           "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
+           "script-src 'self'; connect-src 'self'; frame-ancestors 'self'; "
            "base-uri 'none'; form-action 'self'")
 
     # 登录页自己要用、且必须在登录闸外面的静态资源。

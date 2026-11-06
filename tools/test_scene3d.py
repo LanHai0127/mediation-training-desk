@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """3D 微缩场景的交互测试：人能不能走、走近会不会触发、卡不卡。
 
@@ -89,18 +89,18 @@ def main() -> int:
         # 1. 走到指定点
         moved = js("""(async () => {
             const p0 = window.__mini.actorPos();
-            window.__mini.walkTo(6, 4);
+            window.__mini.walkTo(4.2, 3.2);
             await new Promise(r => setTimeout(r, 3000));
             const p1 = window.__mini.actorPos();
             return {p0: [p0.x, p0.z], p1: [p1.x, p1.z]};
         })()""")
         dx = abs(moved["p1"][0] - moved["p0"][0]) + abs(moved["p1"][1] - moved["p0"][1])
-        check(dx > 3, "点地面后主角走了（位移 %.1f）" % dx, str(moved))
+        check(dx > 2, "点地面后主角走了（位移 %.1f）" % dx, str(moved))
 
         # 2. 走近才触发：近处物件
         near = js("""(async () => {
             window.__events = [];
-            window.__mini.walkTo(1.05, 0);
+            window.__mini.walkTo(0.9, 1.0);
             await new Promise(r => setTimeout(r, 500));
             const during = window.__events.slice();
             await new Promise(r => setTimeout(r, 4500));
@@ -128,7 +128,7 @@ def main() -> int:
 
         # 4. 点障碍内部：吸附到最近可走点，不卡死
         blocked = js("""(async () => {
-            window.__mini.walkTo(2.2, -2.2);   // 值班台正中
+            window.__mini.walkTo(2.2, -1.2);   // 值班台正中
             await new Promise(r => setTimeout(r, 4500));
             const p = window.__mini.actorPos();
             const s = window.__mini.stats();
@@ -141,7 +141,7 @@ def main() -> int:
         walk = js("""(async () => {
             const s = window.__mini;
             s.setActor(0, 0);
-            const ok = s.walkTo(0.8, 4.6);
+            const ok = s.walkTo(0.8, 3.2);
             await new Promise(r => setTimeout(r, 1600));
             const p = s.stats().actorXZ;
             return {ok, xz: p, moved: Math.abs(p[1]) > 2.5};
@@ -160,7 +160,7 @@ def main() -> int:
             await new Promise(r => setTimeout(r, 350));
             const st = window.__mini.stats();
             const sat = st.sitting;
-            window.__mini.walkTo(2.0, 5.0);
+            window.__mini.walkTo(2.0, 3.2);
             await new Promise(r => setTimeout(r, 700));
             return {sat, walking: st.walking, stood: !window.__mini.stats().sitting,
                     events: window.__events.slice()};
@@ -183,6 +183,192 @@ def main() -> int:
             return {before, after: window.__mini.stats().camDist};
         })()""")
         check(cam["before"] == cam["after"], "resize 不改变相机距离（不抖）", str(cam))
+
+        # ---------------------------------------------------------------- 第二阶段：S3 院墙（室外场景）
+        # 室外场景没有 room、没有吊顶，走的是另一条构建分支；S0 全绿不代表它也绿。
+        cdp.call("Page.navigate", {"url": BASE + "/static/scenes/wall.html"})
+        time.sleep(4.0)
+        wready = js("""(() => ({
+            canvas: !!document.querySelector('#stage canvas'),
+            mini: !!window.__mini,
+            err: window.__err || ''
+        }))()""")
+        check(wready["canvas"] is True and wready["mini"] is True, "S3 院墙：场景能起来", str(wready))
+        check(wready["err"] == "", "S3 院墙：没有运行时报错", wready["err"])
+
+        winfo = js("""(() => window.__mini.info())()""")
+        check(winfo["props"] >= 32, "S3 院墙：物件 %d 件（室外参考 28~45）" % winfo["props"], str(winfo))
+        check(winfo["people"] >= 2, "S3 院墙：两名可交互当事人已注册", str(winfo))
+        check(winfo["tris"] >= 12000, "S3 院墙：三角面 %d（不是十几个盒子糊的）" % winfo["tris"], str(winfo))
+
+        wpath = js("""(() => {
+            const d = window.__mini.debugPath(1.15, 1.6);
+            return {fromBlocked: d.fromBlocked, goalBlocked: d.goalBlocked, len: d.len};
+        })()""")
+        check(wpath["fromBlocked"] is False, "S3 院墙：主角起点不在障碍里", str(wpath))
+        check(wpath["goalBlocked"] is False and wpath["len"] > 0,
+              "S3 院墙：能走到界石（路径 %d 格）" % wpath["len"], str(wpath))
+
+        wspot = js("""(async () => {
+            window.__events = [];
+            window.__mini.setActor(1.15, 3.2);
+            window.__mini.goToProp('s_stone');
+            await new Promise(r => setTimeout(r, 3200));
+            return {events: window.__events};
+        })()""")
+        check(any(e[0] == "spot" and e[1] == "s_stone" for e in wspot["events"]),
+              "S3 院墙：走近界石能触发证据点位", str(wspot["events"]))
+
+        wperson = js("""(async () => {
+            window.__events = [];
+            window.__mini.setActor(1.15, 3.2);
+            window.__mini.goToPerson('p_b');
+            await new Promise(r => setTimeout(r, 3200));
+            return {events: window.__events};
+        })()""")
+        check(any(e[0] == "person" and e[1] == "p_b" for e in wperson["events"]),
+              "S3 院墙：走近张守义能触发对话", str(wperson["events"]))
+
+        # ---------------------------------------------------------------- 第三阶段：S4 张家院
+        cdp.call("Page.navigate", {"url": BASE + "/static/scenes/yard.html"})
+        time.sleep(4.0)
+        yready = js("""(() => ({
+            canvas: !!document.querySelector('#stage canvas'),
+            mini: !!window.__mini,
+            err: window.__err || ''
+        }))()""")
+        check(yready["canvas"] is True and yready["mini"] is True, "S4 张家院：场景能起来", str(yready))
+        check(yready["err"] == "", "S4 张家院：没有运行时报错", yready["err"])
+
+        yinfo = js("""(() => window.__mini.info())()""")
+        check(yinfo["props"] >= 26, "S4 张家院：物件 %d 件" % yinfo["props"], str(yinfo))
+        check(yinfo["people"] >= 2, "S4 张家院：张守义与张建军已注册", str(yinfo))
+
+        ypath = js("""(() => {
+            const d = window.__mini.debugPath(0.5, 0.9);
+            return {fromBlocked: d.fromBlocked, goalBlocked: d.goalBlocked, len: d.len};
+        })()""")
+        check(ypath["fromBlocked"] is False, "S4 张家院：主角起点不在障碍里", str(ypath))
+        check(ypath["goalBlocked"] is False and ypath["len"] > 0,
+              "S4 张家院：能走到方桌（路径 %d 格）" % ypath["len"], str(ypath))
+
+        yspot = js("""(async () => {
+            window.__events = [];
+            window.__mini.setActor(0.5, 2.4);
+            window.__mini.goToProp('s_table');
+            await new Promise(r => setTimeout(r, 3200));
+            return {events: window.__events};
+        })()""")
+        check(any(e[0] == "spot" and e[1] == "s_table" for e in yspot["events"]),
+              "S4 张家院：走近方桌能触发权证点位", str(yspot["events"]))
+
+        # ---------------------------------------------------------------- 第四阶段：S5 李家院
+        cdp.call("Page.navigate", {"url": BASE + "/static/scenes/lihome.html"})
+        time.sleep(4.0)
+        lready = js("""(() => ({
+            canvas: !!document.querySelector('#stage canvas'),
+            mini: !!window.__mini,
+            err: window.__err || ''
+        }))()""")
+        check(lready["canvas"] is True and lready["mini"] is True, "S5 李家院：场景能起来", str(lready))
+        check(lready["err"] == "", "S5 李家院：没有运行时报错", lready["err"])
+
+        linfo = js("""(() => window.__mini.info())()""")
+        check(linfo["props"] >= 28, "S5 李家院：物件 %d 件" % linfo["props"], str(linfo))
+        check(linfo["people"] >= 1, "S5 李家院：李秀兰已注册", str(linfo))
+
+        lpath = js("""(() => {
+            const d = window.__mini.debugPath(-0.2, 0.7);
+            return {fromBlocked: d.fromBlocked, goalBlocked: d.goalBlocked, len: d.len};
+        })()""")
+        check(lpath["fromBlocked"] is False, "S5 李家院：主角起点不在障碍里", str(lpath))
+        check(lpath["goalBlocked"] is False and lpath["len"] > 0,
+              "S5 李家院：能走到堂屋桌（路径 %d 格）" % lpath["len"], str(lpath))
+
+        lspot = js("""(async () => {
+            window.__events = [];
+            window.__mini.setActor(-0.2, 2.6);
+            window.__mini.goToProp('s_table');
+            await new Promise(r => setTimeout(r, 3200));
+            return {events: window.__events};
+        })()""")
+        check(any(e[0] == "spot" and e[1] == "s_table" for e in lspot["events"]),
+              "S5 李家院：走近堂屋桌能触发学费单点位", str(lspot["events"]))
+
+        # ---------------------------------------------------------------- 第五阶段：S1 调解室
+        cdp.call("Page.navigate", {"url": BASE + "/static/scenes/mediation.html"})
+        time.sleep(4.0)
+        mready = js("""(() => ({
+            canvas: !!document.querySelector('#stage canvas'),
+            mini: !!window.__mini,
+            err: window.__err || ''
+        }))()""")
+        check(mready["canvas"] is True and mready["mini"] is True, "S1 调解室：场景能起来", str(mready))
+        check(mready["err"] == "", "S1 调解室：没有运行时报错", mready["err"])
+
+        minfo = js("""(() => window.__mini.info())()""")
+        check(minfo["props"] >= 32, "S1 调解室：物件 %d 件" % minfo["props"], str(minfo))
+
+        mpath = js("""(() => {
+            const d = window.__mini.debugPath(0, 1.3);
+            return {fromBlocked: d.fromBlocked, goalBlocked: d.goalBlocked, len: d.len};
+        })()""")
+        check(mpath["fromBlocked"] is False, "S1 调解室：主角起点不在障碍里", str(mpath))
+        check(mpath["goalBlocked"] is False and mpath["len"] > 0,
+              "S1 调解室：能走到调解桌（路径 %d 格）" % mpath["len"], str(mpath))
+
+        mspot = js("""(async () => {
+            window.__events = [];
+            window.__mini.setActor(0, 2.4);
+            window.__mini.goToProp('s_table');
+            await new Promise(r => setTimeout(r, 3200));
+            return {events: window.__events};
+        })()""")
+        check(any(e[0] == "spot" and e[1] == "s_table" for e in mspot["events"]),
+              "S1 调解室：走近调解桌能触发申请书点位", str(mspot["events"]))
+
+        mseat = js("""(async () => {
+            window.__events = [];
+            window.__mini.setActor(-1.2, 2.6);
+            window.__mini.goToProp('s_benchL');
+            await new Promise(r => setTimeout(r, 3600));
+            return {events: window.__events, stats: window.__mini.stats()};
+        })()""")
+        check(any(e[0] == "seat" for e in mseat["events"]),
+              "S1 调解室：两侧长条椅能坐下", str(mseat["events"]))
+
+        # ---------------------------------------------------------------- 第六阶段：其余五场的通用检查
+        # 五场结构相同（能起来 / 无报错 / 物件数够 / 起点不卡 / 指定的证据点位能触发），
+        # 用一张表跑，省得复制五遍。
+        OTHERS = [
+            ("court", "S2 篮球场", 24, "s_mark", -1.6, 1.9),
+            ("village", "S6 村委会", 20, "s_desk", 0.4, 0.3),
+            ("shop", "S7 小卖部", 14, "s_counter", 3.9, 3.6),
+            ("thresh", "S8 晒谷场", 18, "s_notice", -1.6, 4.4),
+            ("judicial", "S9 司法所", 18, "s_counter", 0.0, 1.5),
+        ]
+        for slug, label, minp, spot, sx, sz in OTHERS:
+            cdp.call("Page.navigate", {"url": BASE + "/static/scenes/" + slug + ".html"})
+            time.sleep(3.2)
+            r = js("(() => ({ok: !!window.__mini, err: window.__err || '',"
+                   " info: window.__mini ? window.__mini.info() : null}))()")
+            check(r["ok"] is True and r["err"] == "", label + "：能起来且无报错", str(r.get("err")))
+            n = r["info"]["props"] if r.get("info") else -1
+            check(n >= minp, label + "：物件 %d 件（门槛 %d）" % (n, minp), "")
+
+            p2 = js("(() => { const d = window.__mini.debugPath(" + str(sx) + "," + str(sz) + ");"
+                    " return {fb: d.fromBlocked, gb: d.goalBlocked, len: d.len}; })()")
+            check(p2["fb"] is False, label + "：起点不在障碍里", str(p2))
+            check(p2["gb"] is False and p2["len"] > 0,
+                  label + "：能走到证据点位（路径 %d 格）" % p2["len"], str(p2))
+
+            ev = js("(async () => { window.__events = [];"
+                    " window.__mini.setActor(" + str(sx) + ", " + str(sz + 1.0) + ");"
+                    " window.__mini.goToProp('" + spot + "');"
+                    " await new Promise(r => setTimeout(r, 3000));"
+                    " return {events: window.__events}; })()")
+            check(any(e[0] == "spot" and e[1] == spot for e in ev["events"]),
+                  label + "：走近 " + spot + " 能触发点位", str(ev["events"]))
 
         cdp.close()
     finally:

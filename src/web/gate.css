@@ -1,0 +1,215 @@
+/* gate.css · 口令页
+   底色与加载页同一套：深墨蓝当"天"，奶油白的云盖在上面（云由 gate.js 用
+   ui/clouds.js 的 paintClouds 画，和加载页/转场是同一朵云）。 */
+
+:root {
+  --ink: #355364;
+  --cream: #fff3d7;
+  --white: #fffaf0;
+  --navy: #315c72;
+  --coral: #e98578;
+  --dark: #294858;
+  --road: #667782;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+body {
+  overflow: hidden;
+  background: var(--dark);
+  color: var(--ink);
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: opacity .28s ease;
+}
+
+body.is-out { opacity: 0; }
+
+#gateCloud {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- 角标 */
+.gate-badge,
+.gate-ver {
+  position: fixed;
+  top: calc(14px + var(--sat));
+  z-index: 5;
+  padding: 6px 12px;
+  border: 1px solid rgba(49, 92, 114, .45);
+  border-radius: 999px;
+  background: rgba(255, 250, 240, .88);
+  color: var(--navy);
+  font-size: 10px;
+  letter-spacing: .14em;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px -10px rgba(41, 72, 88, .55);
+}
+
+.gate-badge { left: calc(14px + env(safe-area-inset-left, 0px)); }
+.gate-ver { right: calc(14px + env(safe-area-inset-right, 0px)); opacity: .78; }
+
+/* ---------------------------------------------------------------- 卡片 */
+.gate {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 76px 20px calc(28px + var(--sab));
+}
+
+.gate-card {
+  width: min(100%, 430px);
+  padding: 30px 30px 22px;
+  border: 1.5px solid var(--navy);
+  border-radius: 20px;
+  background: rgba(255, 250, 240, .9);
+  box-shadow:
+    0 34px 70px -30px rgba(20, 38, 48, .78),
+    inset 0 1px 0 var(--white);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: gate-in .55s cubic-bezier(.2, .85, .25, 1) both;
+}
+
+@keyframes gate-in {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.gate-kicker {
+  margin: 0;
+  font-size: 9.5px;
+  letter-spacing: .42em;
+  color: var(--navy);
+  opacity: .72;
+}
+
+.gate-title {
+  margin: 8px 0 6px;
+  font: 600 42px/1.08 "Songti SC", "Noto Serif SC", "SimSun", serif;
+  letter-spacing: .16em;
+  color: var(--ink);
+}
+
+.gate-sub {
+  margin: 0 0 22px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--navy);
+  opacity: .86;
+}
+
+/* ---------------------------------------------------------------- 表单 */
+.gate-label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 10.5px;
+  letter-spacing: .3em;
+  color: var(--navy);
+  opacity: .78;
+}
+
+.gate-pw {
+  width: 100%;
+  height: 54px;
+  padding: 0 14px;
+  border: 1.5px solid rgba(49, 92, 114, .62);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: 600 22px/1.2 "Songti SC", "Noto Serif SC", "SimSun", serif;
+  letter-spacing: .46em;
+  text-align: center;
+  outline: none;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.gate-pw::placeholder {
+  color: var(--road);
+  opacity: .45;
+  letter-spacing: .3em;
+}
+
+.gate-pw:focus {
+  border-color: var(--coral);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(233, 133, 120, .18);
+}
+
+.gate-go {
+  width: 100%;
+  height: 48px;
+  margin-top: 12px;
+  border: 1.5px solid var(--navy);
+  border-radius: 12px;
+  background: var(--navy);
+  color: var(--white);
+  font: 600 14px/1 "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  letter-spacing: .22em;
+  cursor: pointer;
+  transition: background .16s ease, transform .12s ease, box-shadow .16s ease;
+}
+
+.gate-go:hover { background: var(--dark); box-shadow: 0 10px 22px -14px rgba(41, 72, 88, .9); }
+.gate-go:active { transform: translateY(1px); }
+.gate-go:disabled { cursor: default; opacity: .72; }
+
+.gate-err {
+  min-height: 20px;
+  margin: 9px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b8523f;
+  letter-spacing: .02em;
+}
+
+.gate-foot {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(49, 92, 114, .18);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--road);
+}
+
+/* 错误抖一下；用独立类名，连续输错能重新触发 */
+.gate-card.is-shake { animation: gate-shake .36s cubic-bezier(.36, .07, .19, .97); }
+
+@keyframes gate-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+
+/* ---------------------------------------------------------------- 窄屏 */
+@media (max-width: 480px) {
+  .gate { padding: 68px 14px calc(20px + var(--sab)); }
+  .gate-card { padding: 24px 20px 18px; border-radius: 16px; }
+  .gate-title { font-size: 34px; }
+  .gate-kicker { letter-spacing: .3em; }
+  .gate-badge, .gate-ver { font-size: 9px; padding: 5px 9px; letter-spacing: .1em; }
+  .gate-ver { display: none; }
+  .gate-pw { height: 50px; font-size: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate-card, .gate-card.is-shake, body { animation: none !important; transition: none !important; }
+}

@@ -1,0 +1,92 @@
+{
+  "case_00_flame": {
+    "p_a": [
+      {
+        "scene": "duty",
+        "name": "派出所值班室"
+      }
+    ],
+    "p_b": [
+      {
+        "scene": "duty",
+        "name": "派出所值班室"
+      }
+    ]
+  },
+  "case_05_court": {
+    "p_a": [
+      {
+        "scene": "court",
+        "name": "社区篮球场"
+      },
+      {
+        "scene": "mediation",
+        "name": "调解室"
+      }
+    ],
+    "p_b": [
+      {
+        "scene": "court",
+        "name": "社区篮球场"
+      },
+      {
+        "scene": "mediation",
+        "name": "调解室"
+      }
+    ],
+    "p_c": [
+      {
+        "scene": "court",
+        "name": "社区篮球场"
+      },
+      {
+        "scene": "mediation",
+        "name": "调解室"
+      }
+    ]
+  },
+  "case_06_wall": {
+    "p_a": [
+      {
+        "scene": "mediation",
+        "name": "调解室"
+      },
+      {
+        "scene": "duty",
+        "name": "派出所值班室"
+      },
+      {
+        "scene": "wall",
+        "name": "院墙地界"
+      },
+      {
+        "scene": "lihome",
+        "name": "李家院"
+      }
+    ],
+    "p_b": [
+      {
+        "scene": "mediation",
+        "name": "调解室"
+      },
+      {
+        "scene": "duty",
+        "name": "派出所值班室"
+      },
+      {
+        "scene": "wall",
+        "name": "院墙地界"
+      },
+      {
+        "scene": "yard",
+        "name": "张家院"
+      }
+    ],
+    "p_c": [
+      {
+        "scene": "mediation",
+        "name": "调解室"
+      }
+    ]
+  }
+}
